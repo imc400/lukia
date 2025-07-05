@@ -1,0 +1,125 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  price       Float
+  currency    String   @default("USD")
+  imageUrl    String?
+  productUrl  String
+  platform    Platform
+  vendorId    String?
+  trustScore  Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relaciones
+  vendor      Vendor?   @relation(fields: [vendorId], references: [id])
+  reviews     Review[]
+  searches    ProductSearch[]
+  
+  // Índices
+  @@map("products")
+}
+
+model Vendor {
+  id              String   @id @default(cuid())
+  name            String
+  platform        Platform
+  vendorUrl       String?
+  rating          Float?
+  totalSales      Int?
+  yearsInBusiness Int?
+  responseTime    String?
+  trustScore      Float?
+  trustScoreData  Json?    // Metadata del cálculo del Trust Score
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relaciones
+  products        Product[]
+  
+  // Índices
+  @@unique([name, platform])
+  @@map("vendors")
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  productId   String
+  rating      Int
+  comment     String?
+  userName    String?
+  date        DateTime?
+  verified    Boolean  @default(false)
+  sentiment   String?  // positive, negative, neutral
+  aiAnalysis  Json?    // Análisis de IA de la review
+  isFake      Boolean? // Detección de review falsa
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relaciones
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  // Índices
+  @@map("reviews")
+}
+
+model Search {
+  id        String   @id @default(cuid())
+  query     String
+  platform  Platform?
+  results   Int      @default(0)
+  createdAt DateTime @default(now())
+  
+  // Relaciones
+  products  ProductSearch[]
+  
+  // Índices
+  @@map("searches")
+}
+
+model ProductSearch {
+  id        String @id @default(cuid())
+  productId String
+  searchId  String
+  
+  // Relaciones
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  search    Search  @relation(fields: [searchId], references: [id], onDelete: Cascade)
+  
+  // Índices
+  @@unique([productId, searchId])
+  @@map("product_searches")
+}
+
+model ScrapingLog {
+  id        String    @id @default(cuid())
+  platform  Platform
+  status    String    // success, failed, blocked
+  url       String?
+  error     String?
+  duration  Int?      // en milisegundos
+  createdAt DateTime  @default(now())
+  
+  // Índices
+  @@map("scraping_logs")
+}
+
+enum Platform {
+  ALIEXPRESS
+  SHEIN
+  TEMU
+  ALIBABA
+}
