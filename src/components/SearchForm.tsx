@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export function SearchForm() {
   const [query, setQuery] = useState('')
   const [platform, setPlatform] = useState('all')
   const [isSearching, setIsSearching] = useState(false)
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -13,13 +15,39 @@ export function SearchForm() {
 
     setIsSearching(true)
     
-    // TODO: Implementar búsqueda
-    console.log('Buscando:', { query, platform })
-    
-    // Simulamos una búsqueda por ahora
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          query: query.trim(), 
+          platform,
+          maxResults: 20
+        }),
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        // Redirigir a página de resultados con los datos
+        const searchParams = new URLSearchParams({
+          q: query.trim(),
+          platform,
+          results: JSON.stringify(data)
+        })
+        router.push(`/search?${searchParams.toString()}`)
+      } else {
+        console.error('Error en búsqueda:', data.error)
+        alert('Error al buscar productos. Por favor, intenta nuevamente.')
+      }
+    } catch (error) {
+      console.error('Error de red:', error)
+      alert('Error de conexión. Por favor, intenta nuevamente.')
+    } finally {
       setIsSearching(false)
-    }, 2000)
+    }
   }
 
   return (

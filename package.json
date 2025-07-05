@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@types/puppeteer": "^5.4.7",
     "axios": "^1.7.7",
     "ioredis": "^5.6.1",
     "next": "^14.2.30",
