@@ -485,4 +485,4 @@ export async function scrapeAliExpress(query: string, maxResults: number = 20): 
   }
 }
 
-export { EnhancedAliExpressScraper, scraperPool }
+export { scraperPool }
