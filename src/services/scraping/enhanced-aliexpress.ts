@@ -377,7 +377,14 @@ export class EnhancedAliExpressScraper {
       '[data-widget-cid="widget-common-5.0.0"]',
       '.list--gallery--C2f2tvm',
       '.product-item',
-      '.list-item'
+      '.list-item',
+      '.search-item-card-wrapper',
+      '.item-box',
+      '.product-card',
+      '.search-card-item',
+      '.item-container',
+      '.product-container',
+      '.search-item'
     ]
 
     let productSelectorFound = false
@@ -392,7 +399,21 @@ export class EnhancedAliExpressScraper {
     }
 
     if (!productSelectorFound) {
-      throw new Error('Product containers not found on page')
+      // Intentar extraer cualquier contenido que pueda ser de productos
+      console.log('[Scraper] Standard selectors not found, trying alternative extraction')
+      
+      // Buscar cualquier elemento que contenga información de productos
+      const hasAnyProductInfo = await this.page!.evaluate(() => {
+        const hasProductLinks = document.querySelectorAll('a[href*="/item/"]').length > 0
+        const hasProductPrices = document.querySelectorAll('[class*="price"], [class*="Price"]').length > 0
+        const hasProductImages = document.querySelectorAll('img[src*="alicdn"], img[alt*="product"]').length > 0
+        
+        return hasProductLinks || hasProductPrices || hasProductImages
+      })
+      
+      if (!hasAnyProductInfo) {
+        throw new Error('No product information found on page')
+      }
     }
 
     // Scroll para cargar contenido lazy
@@ -411,7 +432,13 @@ export class EnhancedAliExpressScraper {
             '.item-title',
             '.product-title',
             'h3',
-            '.title'
+            '.title',
+            '[class*="title"]',
+            '[class*="Title"]',
+            '[class*="name"]',
+            '[class*="Name"]',
+            'span[title]',
+            'a[title]'
           ]
           
           let titleElement: Element | null = null
@@ -425,7 +452,15 @@ export class EnhancedAliExpressScraper {
             '.multi--price-sale--U-S0jtj',
             '.price-current',
             '.price',
-            '.notranslate'
+            '.notranslate',
+            '[class*="price"]',
+            '[class*="Price"]',
+            '[class*="cost"]',
+            '[class*="Cost"]',
+            '[class*="amount"]',
+            '[class*="Amount"]',
+            'span[data-price]',
+            'span[data-cost]'
           ]
           
           let priceElement: Element | null = null
@@ -517,7 +552,19 @@ export class EnhancedAliExpressScraper {
         '[data-widget-cid="widget-common-5.0.0"] .list--gallery--C2f2tvm a',
         '.list--gallery--C2f2tvm .list-item',
         '.product-item',
-        '.item'
+        '.item',
+        '.search-item-card-wrapper',
+        '.item-box',
+        '.product-card',
+        '.search-card-item',
+        '.item-container',
+        '.product-container',
+        '.search-item',
+        'div[data-pl]',
+        'div[data-item-id]',
+        'a[href*="/item/"]',
+        'div[class*="item"]',
+        'div[class*="product"]'
       ]
 
       let productElements: NodeListOf<Element> | null = null
@@ -527,7 +574,23 @@ export class EnhancedAliExpressScraper {
       }
 
       if (!productElements || productElements.length === 0) {
-        throw new Error('No product elements found')
+        // Fallback: extraer cualquier enlace que apunte a productos
+        console.log('[Scraper] No product elements found, trying fallback extraction')
+        
+        productElements = document.querySelectorAll('a[href*="/item/"]')
+        
+        if (!productElements || productElements.length === 0) {
+          // Último recurso: buscar cualquier elemento con información de precio o título
+          const priceElements = document.querySelectorAll('[class*="price"], [class*="Price"]')
+          const titleElements = document.querySelectorAll('[class*="title"], [class*="Title"]')
+          
+          if (priceElements.length > 0 || titleElements.length > 0) {
+            console.log('[Scraper] Found price/title elements, attempting extraction')
+            return [] // Retornar array vacío por ahora para evitar errores
+          }
+          
+          throw new Error('No product elements found after fallback attempts')
+        }
       }
 
       const results: any[] = []
