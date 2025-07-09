@@ -33,7 +33,7 @@ export class EnhancedAliExpressScraper {
    */
   async initialize(proxy?: ProxyConfig): Promise<void> {
     const launchOptions: any = {
-      headless: true,
+      headless: 'new', // Usar nuevo modo headless
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -48,7 +48,68 @@ export class EnhancedAliExpressScraper {
         '--disable-sync',
         '--disable-translate',
         '--disable-features=VizDisplayCompositor',
-        '--disable-ipc-flooding-protection'
+        '--disable-ipc-flooding-protection',
+        '--disable-blink-features=AutomationControlled',
+        '--disable-features=VizDisplayCompositor',
+        '--disable-background-networking',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-breakpad',
+        '--disable-client-side-phishing-detection',
+        '--disable-component-update',
+        '--disable-default-apps',
+        '--disable-domain-reliability',
+        '--disable-extensions',
+        '--disable-features=TranslateUI',
+        '--disable-hang-monitor',
+        '--disable-ipc-flooding-protection',
+        '--disable-popup-blocking',
+        '--disable-prompt-on-repost',
+        '--disable-renderer-backgrounding',
+        '--disable-sync',
+        '--disable-web-security',
+        '--metrics-recording-only',
+        '--no-default-browser-check',
+        '--no-first-run',
+        '--no-pings',
+        '--password-store=basic',
+        '--use-mock-keychain',
+        // Nuevas banderas anti-detección
+        '--disable-blink-features=AutomationControlled',
+        '--exclude-switches=enable-automation',
+        '--disable-extensions-except=',
+        '--disable-plugins-discovery',
+        '--disable-infobars',
+        '--disable-save-password-bubble',
+        '--disable-notifications',
+        '--disable-component-extensions-with-background-pages',
+        '--disable-background-mode',
+        '--disable-default-apps',
+        '--disable-sync',
+        '--disable-translate',
+        '--hide-scrollbars',
+        '--mute-audio',
+        '--disable-logging',
+        '--disable-gl-drawing-for-tests',
+        '--disable-canvas-aa',
+        '--disable-3d-apis',
+        '--disable-accelerated-2d-canvas',
+        '--disable-accelerated-jpeg-decoding',
+        '--disable-accelerated-mjpeg-decode',
+        '--disable-app-list-dismiss-on-blur',
+        '--disable-accelerated-video-decode',
+        '--disable-file-system',
+        '--disable-features=ScriptStreaming',
+        '--disable-ipc-flooding-protection',
+        '--disable-renderer-backgrounding',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-field-trial-config',
+        '--disable-back-forward-cache',
+        '--disable-hang-monitor',
+        '--disable-prompt-on-repost',
+        '--disable-client-side-phishing-detection',
+        '--disable-domain-reliability',
+        '--disable-features=VizDisplayCompositor,VizHitTestSurfaceLayer,VizHitTestDrawQuad'
       ]
     }
 
@@ -69,6 +130,95 @@ export class EnhancedAliExpressScraper {
         password: proxy.password
       })
     }
+
+    // Implementar stealth mode - ocultar propiedades de automatización
+    await this.page.evaluateOnNewDocument(() => {
+      // Eliminar webdriver property
+      Object.defineProperty(navigator, 'webdriver', {
+        get: () => undefined,
+      })
+
+      // Modificar plugins
+      Object.defineProperty(navigator, 'plugins', {
+        get: () => [1, 2, 3, 4, 5]
+      })
+
+      // Modificar languages
+      Object.defineProperty(navigator, 'languages', {
+        get: () => ['en-US', 'en']
+      })
+
+      // Modificar permissions
+      const originalQuery = window.navigator.permissions.query
+      window.navigator.permissions.query = (parameters) => (
+        parameters.name === 'notifications' ?
+          Promise.resolve({ state: Notification.permission } as PermissionStatus) :
+          originalQuery(parameters)
+      )
+
+      // Modificar chrome runtime
+      Object.defineProperty(window, 'chrome', {
+        get: () => ({
+          runtime: {},
+          loadTimes: function() {},
+          csi: function() {},
+          app: {}
+        })
+      })
+
+      // Modificar screen properties
+      Object.defineProperty(window.screen, 'availHeight', {
+        get: () => 900 + Math.floor(Math.random() * 100)
+      })
+
+      Object.defineProperty(window.screen, 'availWidth', {
+        get: () => 1440 + Math.floor(Math.random() * 100)
+      })
+
+      // Modificar outerHeight y outerWidth
+      Object.defineProperty(window, 'outerHeight', {
+        get: () => window.innerHeight
+      })
+
+      Object.defineProperty(window, 'outerWidth', {
+        get: () => window.innerWidth
+      })
+
+      // Simular batería
+      Object.defineProperty(navigator, 'getBattery', {
+        get: () => () => Promise.resolve({
+          charging: true,
+          chargingTime: 0,
+          dischargingTime: Infinity,
+          level: 0.8 + Math.random() * 0.2
+        })
+      })
+
+      // Modificar deviceMemory
+      Object.defineProperty(navigator, 'deviceMemory', {
+        get: () => 8
+      })
+
+      // Modificar hardwareConcurrency
+      Object.defineProperty(navigator, 'hardwareConcurrency', {
+        get: () => 4
+      })
+
+      // Modificar connection
+      Object.defineProperty(navigator, 'connection', {
+        get: () => ({
+          effectiveType: '4g',
+          rtt: 100,
+          downlink: 10
+        })
+      })
+
+      // Overridear Date.getTimezoneOffset
+      const originalGetTimezoneOffset = Date.prototype.getTimezoneOffset
+      Date.prototype.getTimezoneOffset = function() {
+        return -300 // EST timezone
+      }
+    })
     
     // Configurar user agent rotativo
     const userAgents = [
@@ -185,7 +335,21 @@ export class EnhancedAliExpressScraper {
       timeout: 45000 
     })
 
+    // Esperar que la página cargue completamente
+    await sleep(3000)
+
+    // Verificar si fuimos redirigidos a una página de bloqueo
+    const currentUrl = this.page!.url()
+    if (currentUrl.includes('_____tmd_____/punish') || 
+        currentUrl.includes('sec.aliexpress.com') ||
+        currentUrl.includes('slides.aliexpress.com') ||
+        currentUrl !== searchUrl && !currentUrl.includes('aliexpress.com/w/wholesale')) {
+      this.metrics.blockedRequests++
+      throw new Error(`Redirected to blocking page: ${currentUrl}`)
+    }
+
     // Simular comportamiento humano antes de buscar elementos
+    await this.simulateHumanBehavior()
     await sleep(2000 + Math.random() * 3000)
 
     // Verificar si hay captcha o bloqueo
@@ -195,7 +359,12 @@ export class EnhancedAliExpressScraper {
              document.querySelector('.slider-container') !== null ||
              document.body.innerText.includes('Robot Check') ||
              document.body.innerText.includes('Access Denied') ||
-             window.location.href.includes('slides.aliexpress.com')
+             document.body.innerText.includes('Please complete the security check') ||
+             document.body.innerText.includes('verification') ||
+             document.body.innerText.includes('Verification Required') ||
+             window.location.href.includes('slides.aliexpress.com') ||
+             window.location.href.includes('_____tmd_____/punish') ||
+             window.location.href.includes('sec.aliexpress.com')
     })
 
     if (captchaExists) {
@@ -384,6 +553,57 @@ export class EnhancedAliExpressScraper {
       platform: Platform.ALIEXPRESS,
       totalFound: products?.length || 0,
       processingTime: 0 // Se calculará en el nivel superior
+    }
+  }
+
+  /**
+   * Simular comportamiento humano (movimientos de mouse, scroll, etc.)
+   */
+  private async simulateHumanBehavior(): Promise<void> {
+    if (!this.page) return
+
+    try {
+      // Movimientos de mouse aleatorios
+      for (let i = 0; i < 3; i++) {
+        const x = Math.random() * 1200
+        const y = Math.random() * 800
+        await this.page.mouse.move(x, y, { steps: 10 })
+        await sleep(100 + Math.random() * 200)
+      }
+
+      // Scroll suave y realista
+      await this.page.evaluate(() => {
+        const scrollAmount = Math.floor(Math.random() * 300) + 100
+        window.scrollBy(0, scrollAmount)
+      })
+      await sleep(500 + Math.random() * 1000)
+
+      // Movimiento de mouse más realista
+      await this.page.mouse.move(400, 300, { steps: 5 })
+      await sleep(200)
+      await this.page.mouse.move(500, 400, { steps: 8 })
+      await sleep(300)
+
+      // Simular hover sobre un elemento
+      await this.page.evaluate(() => {
+        const elements = document.querySelectorAll('div, span, a')
+        if (elements.length > 0) {
+          const randomElement = elements[Math.floor(Math.random() * Math.min(elements.length, 10))]
+          if (randomElement) {
+            randomElement.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
+          }
+        }
+      })
+      await sleep(200)
+
+      // Scroll final
+      await this.page.evaluate(() => {
+        window.scrollTo(0, Math.random() * 200)
+      })
+      await sleep(300)
+
+    } catch (error) {
+      console.log('[Scraper] Error simulating human behavior:', error)
     }
   }
 
