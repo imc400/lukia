@@ -5,7 +5,7 @@ import { z } from 'zod'
 
 const searchSchema = z.object({
   query: z.string().min(1).max(100),
-  platform: z.enum(['all', 'ALIEXPRESS', 'SHEIN', 'TEMU', 'ALIBABA']).optional().default('all'),
+  platform: z.enum(['all', 'ALIEXPRESS', 'SHEIN', 'TEMU', 'ALIBABA', 'aliexpress', 'shein', 'temu', 'alibaba']).optional().default('all'),
   maxResults: z.number().min(1).max(50).optional().default(20)
 })
 
@@ -14,9 +14,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = searchSchema.parse(body)
     
+    // Normalizar plataforma a mayúsculas
+    const normalizedPlatform = validatedData.platform === 'all' ? 'all' : 
+      validatedData.platform.toUpperCase() as Platform
+    
     const searchParams: SearchParams = {
       query: validatedData.query,
-      platform: validatedData.platform === 'all' ? 'all' : validatedData.platform as Platform
+      platform: normalizedPlatform
     }
     
     const scrapingService = getScrapingService()
@@ -94,9 +98,13 @@ export async function GET(request: NextRequest) {
     
     const validatedData = searchSchema.parse({ query, platform })
     
+    // Normalizar plataforma a mayúsculas
+    const normalizedPlatform = validatedData.platform === 'all' ? 'all' : 
+      validatedData.platform.toUpperCase() as Platform
+    
     const searchParamsObj: SearchParams = {
       query: validatedData.query,
-      platform: validatedData.platform === 'all' ? 'all' : validatedData.platform as Platform
+      platform: normalizedPlatform
     }
     
     const scrapingService = getScrapingService()
