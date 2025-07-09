@@ -54,16 +54,21 @@ export class EnhancedAliExpressScraper {
 
     // Configurar proxy si está disponible
     if (proxy) {
-      const proxyUrl = proxy.username && proxy.password
-        ? `${proxy.protocol}://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`
-        : `${proxy.protocol}://${proxy.host}:${proxy.port}`
-      
-      launchOptions.args.push(`--proxy-server=${proxyUrl}`)
+      // Para proxies con autenticación, usar solo host:port
+      launchOptions.args.push(`--proxy-server=${proxy.host}:${proxy.port}`)
       console.log(`[Scraper] Using proxy: ${proxy.host}:${proxy.port} (${proxy.provider})`)
     }
 
     this.browser = await puppeteer.launch(launchOptions)
     this.page = await this.browser.newPage()
+    
+    // Configurar autenticación de proxy si es necesario
+    if (proxy && proxy.username && proxy.password) {
+      await this.page.authenticate({
+        username: proxy.username,
+        password: proxy.password
+      })
+    }
     
     // Configurar user agent rotativo
     const userAgents = [
