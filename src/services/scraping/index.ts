@@ -1,6 +1,8 @@
 import { Platform } from '@prisma/client'
 import { ScrapingResult, SearchParams } from '@/types'
-import { scrapeAliExpress } from './aliexpress'
+import { scrapeAliExpress } from './enhanced-aliexpress'
+import { scrapeShein } from './shein-api'
+import { demoScrape, isDemoMode } from './demo'
 import { CacheService } from '@/lib/redis'
 import { prisma } from '@/lib/prisma'
 
@@ -17,7 +19,7 @@ export class ScrapingService {
     
     // Determinar qué plataformas buscar
     const platformsToSearch = platform === 'all' 
-      ? [Platform.ALIEXPRESS] // Por ahora solo AliExpress
+      ? [Platform.ALIEXPRESS, Platform.SHEIN] // AliExpress y SHEIN disponibles
       : [platform as Platform]
     
     // Log de búsqueda
@@ -36,22 +38,30 @@ export class ScrapingService {
           continue
         }
         
-        // Scraping real
+        // Scraping real o demo
         let result: ScrapingResult
         
-        switch (plt) {
-          case Platform.ALIEXPRESS:
-            result = await scrapeAliExpress(query, 20)
-            break
-          default:
-            result = {
-              success: false,
-              products: [],
-              errors: [`Platform ${plt} not implemented yet`],
-              platform: plt,
-              totalFound: 0,
-              processingTime: 0
-            }
+        if (isDemoMode()) {
+          console.log(`[Demo Mode] Simulating scraping for ${plt}: ${query}`)
+          result = await demoScrape(query, 20)
+        } else {
+          switch (plt) {
+            case Platform.ALIEXPRESS:
+              result = await scrapeAliExpress(query, 20)
+              break
+            case Platform.SHEIN:
+              result = await scrapeShein(query, 20)
+              break
+            default:
+              result = {
+                success: false,
+                products: [],
+                errors: [`Platform ${plt} not implemented yet`],
+                platform: plt,
+                totalFound: 0,
+                processingTime: 0
+              }
+          }
         }
         
         // Cachear resultado exitoso
@@ -86,30 +96,34 @@ export class ScrapingService {
 
   private async logSearch(query: string, platforms: Platform[]): Promise<void> {
     try {
-      await prisma.search.create({
-        data: {
-          query,
-          platform: platforms.length === 1 ? platforms[0] : null,
-          results: 0 // Se actualizará después
-        }
-      })
+      if (prisma) {
+        await prisma.search.create({
+          data: {
+            query,
+            platform: platforms.length === 1 ? platforms[0] : null,
+            results: 0 // Se actualizará después
+          }
+        })
+      }
     } catch (error) {
-      console.error('Error logging search:', error)
+      console.log('[Search] Logging unavailable:', error)
     }
   }
 
   private async logScrapingResult(result: ScrapingResult): Promise<void> {
     try {
-      await prisma.scrapingLog.create({
-        data: {
-          platform: result.platform,
-          status: result.success ? 'success' : 'failed',
-          error: result.errors.join(', ') || null,
-          duration: result.processingTime
-        }
-      })
+      if (prisma) {
+        await prisma.scrapingLog.create({
+          data: {
+            platform: result.platform,
+            status: result.success ? 'success' : 'failed',
+            error: result.errors.join(', ') || null,
+            duration: result.processingTime
+          }
+        })
+      }
     } catch (error) {
-      console.error('Error logging scraping result:', error)
+      console.log('[Scraping] Logging unavailable:', error)
     }
   }
 
@@ -120,6 +134,15 @@ export class ScrapingService {
     platformStats: Record<Platform, { searches: number, successRate: number }>
   }> {
     try {
+      if (!prisma) {
+        return {
+          totalSearches: 0,
+          successRate: 0,
+          averageProcessingTime: 0,
+          platformStats: {} as Record<Platform, { searches: number, successRate: number }>
+        }
+      }
+
       const logs = await prisma.scrapingLog.findMany({
         where: {
           createdAt: {

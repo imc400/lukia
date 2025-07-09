@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test LUKIA Frontend</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        .loading { color: blue; }
+        button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+        pre { background: #f5f5f5; padding: 10px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 LUKIA Frontend Test Suite</h1>
+    
+    <div class="test-section">
+        <h2>1. Test Search API</h2>
+        <input type="text" id="searchQuery" placeholder="Search term" value="iPhone case">
+        <button onclick="testSearch()">Test Search</button>
+        <div id="searchResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Test AI Review Analysis</h2>
+        <button onclick="testAIReviews()">Test AI Reviews</button>
+        <div id="aiResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Test AI Translation</h2>
+        <button onclick="testAITranslation()">Test AI Translation</button>
+        <div id="translationResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Server Health Check</h2>
+        <button onclick="testHealth()">Check Health</button>
+        <div id="healthResult"></div>
+    </div>
+
+    <script>
+        async function testSearch() {
+            const resultDiv = document.getElementById('searchResult');
+            resultDiv.innerHTML = '<span class="loading">Testing search...</span>';
+            
+            try {
+                const query = document.getElementById('searchQuery').value;
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query, platform: 'all' }),
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <span class="success">✅ Search successful!</span>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Search failed: ${data.error}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+            }
+        }
+        
+        async function testAIReviews() {
+            const resultDiv = document.getElementById('aiResult');
+            resultDiv.innerHTML = '<span class="loading">Testing AI reviews...</span>';
+            
+            try {
+                const response = await fetch('/api/ai/analyze-reviews', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        reviews: [
+                            "Great product, fast shipping!",
+                            "Amazing quality, highly recommend",
+                            "Perfect, exactly as described"
+                        ]
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <span class="success">✅ AI Reviews successful!</span>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ AI Reviews failed: ${data.error}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+            }
+        }
+        
+        async function testAITranslation() {
+            const resultDiv = document.getElementById('translationResult');
+            resultDiv.innerHTML = '<span class="loading">Testing AI translation...</span>';
+            
+            try {
+                const response = await fetch('/api/ai/translate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        text: "Wireless Bluetooth 5.0 Headphones with Active Noise Cancellation"
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <span class="success">✅ AI Translation successful!</span>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ AI Translation failed: ${data.error}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+            }
+        }
+        
+        async function testHealth() {
+            const resultDiv = document.getElementById('healthResult');
+            resultDiv.innerHTML = '<span class="loading">Checking health...</span>';
+            
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <span class="success">✅ Health check successful!</span>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+            }
+        }
+        
+        // Auto-run health check
+        window.onload = function() {
+            testHealth();
+        };
+    </script>
+</body>
+</html>

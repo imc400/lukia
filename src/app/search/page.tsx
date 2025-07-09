@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { Header } from '@/components/Header'
 import { ProductCard } from '@/components/ProductCard'
 import { SearchSummary } from '@/components/SearchSummary'
@@ -21,7 +21,7 @@ interface SearchResult {
   timestamp: string
 }
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams()
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -127,36 +127,49 @@ export default function SearchPage() {
   }
 
   return (
+    <div className="py-8">
+      <SearchSummary 
+        query={searchResult.query}
+        totalResults={searchResult.totalResults}
+        platforms={searchResult.platforms}
+        results={searchResult.results}
+      />
+      
+      {searchResult.products.length > 0 ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {searchResult.products.map((product, index) => (
+            <ProductCard key={index} product={product} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16">
+          <div className="text-gray-400 mb-4">
+            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontraron productos</h3>
+          <p className="text-gray-600">Intenta con otros términos de búsqueda</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function SearchPage() {
+  return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto">
         <Header />
         
-        <div className="py-8">
-          <SearchSummary 
-            query={searchResult.query}
-            totalResults={searchResult.totalResults}
-            platforms={searchResult.platforms}
-            results={searchResult.results}
-          />
-          
-          {searchResult.products.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {searchResult.products.map((product, index) => (
-                <ProductCard key={index} product={product} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <div className="text-gray-400 mb-4">
-                <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontraron productos</h3>
-              <p className="text-gray-600">Intenta con otros términos de búsqueda</p>
-            </div>
-          )}
-        </div>
+        <Suspense fallback={
+          <div className="py-16 text-center">
+            <div className="animate-spin w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando búsqueda...</p>
+          </div>
+        }>
+          <SearchContent />
+        </Suspense>
       </div>
     </div>
   )

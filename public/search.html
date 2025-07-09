@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados de Búsqueda - Lukia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .card {
+            @apply bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden;
+        }
+        .container {
+            @apply max-w-7xl mx-auto px-4;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header class="py-6 border-b border-gray-200">
+        <div class="container">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">L</span>
+                    </div>
+                    <span class="text-xl font-bold text-gray-900">Lukia</span>
+                </div>
+                
+                <nav class="flex space-x-6">
+                    <a href="/" class="text-gray-600 hover:text-primary-600 transition-colors">← Volver al inicio</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto py-8">
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-16">
+            <div class="animate-spin w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p class="text-gray-600">Cargando resultados...</p>
+        </div>
+
+        <!-- Results Content -->
+        <div id="resultsContent" class="hidden">
+            <!-- Search Summary -->
+            <div id="searchSummary" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+                <!-- Populated by JavaScript -->
+            </div>
+
+            <!-- Products Grid -->
+            <div id="productsGrid" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <!-- Populated by JavaScript -->
+            </div>
+
+            <!-- No Results -->
+            <div id="noResults" class="text-center py-16 hidden">
+                <div class="text-gray-400 mb-4">
+                    <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No se encontraron productos</h3>
+                <p class="text-gray-600">Intenta con otros términos de búsqueda</p>
+                <a href="/" class="mt-4 inline-block bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                    Nueva búsqueda
+                </a>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="text-center py-16 hidden">
+            <div class="text-red-500 mb-4">
+                <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+            </div>
+            <h2 class="text-2xl font-semibold text-gray-900 mb-2">Error en la búsqueda</h2>
+            <p class="text-gray-600 mb-4">Hubo un problema al cargar los resultados</p>
+            <a href="/" class="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                Volver al inicio
+            </a>
+        </div>
+    </main>
+
+    <script>
+        // Funciones de utilidad
+        function formatPrice(price, currency = 'USD') {
+            return new Intl.NumberFormat('es-ES', {
+                style: 'currency',
+                currency: currency,
+            }).format(price);
+        }
+
+        function getPlatformName(platform) {
+            const names = {
+                'ALIEXPRESS': 'AliExpress',
+                'SHEIN': 'SHEIN',
+                'TEMU': 'Temu',
+                'ALIBABA': 'Alibaba',
+            };
+            return names[platform] || platform;
+        }
+
+        function getPlatformColor(platform) {
+            const colors = {
+                'ALIEXPRESS': 'bg-orange-100 text-orange-800',
+                'SHEIN': 'bg-pink-100 text-pink-800',
+                'TEMU': 'bg-blue-100 text-blue-800',
+                'ALIBABA': 'bg-yellow-100 text-yellow-800',
+            };
+            return colors[platform] || 'bg-gray-100 text-gray-800';
+        }
+
+        function getTrustScoreColor(score) {
+            if (score >= 8) return 'text-green-600';
+            if (score >= 6) return 'text-yellow-600';
+            return 'text-red-600';
+        }
+
+        function getTrustScoreLabel(score) {
+            if (score >= 8) return 'Muy Confiable';
+            if (score >= 6) return 'Confiable';
+            if (score >= 4) return 'Moderado';
+            return 'Poco Confiable';
+        }
+
+        function truncateText(text, maxLength) {
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength) + '...';
+        }
+
+        // Crear resumen de búsqueda
+        function createSearchSummary(data) {
+            return `
+                <div class="flex items-center justify-between mb-4">
+                    <h1 class="text-2xl font-bold text-gray-900">
+                        Resultados para "${data.query}"
+                    </h1>
+                    <div class="text-sm text-gray-500">
+                        ${data.totalResults} productos encontrados
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <div class="text-2xl font-bold text-green-600">${data.totalResults}</div>
+                        <div class="text-sm text-green-700">Productos Totales</div>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-2xl font-bold text-blue-600">${data.platforms.successful}</div>
+                        <div class="text-sm text-blue-700">Plataformas Exitosas</div>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="text-2xl font-bold text-gray-600">${Math.round(data.results.reduce((sum, r) => sum + r.processingTime, 0) / data.results.length)}ms</div>
+                        <div class="text-sm text-gray-700">Tiempo Promedio</div>
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <h3 class="font-medium text-gray-900">Detalles por plataforma:</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        ${data.results.map(result => `
+                            <div class="p-3 rounded-lg border ${result.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-medium text-gray-900">${getPlatformName(result.platform)}</span>
+                                    <div class="flex items-center space-x-2">
+                                        ${result.success ? 
+                                            '<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>' :
+                                            '<svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>'
+                                        }
+                                    </div>
+                                </div>
+                                <div class="text-sm text-gray-600 space-y-1">
+                                    <div>Productos: ${result.count}</div>
+                                    <div>Tiempo: ${result.processingTime}ms</div>
+                                    ${result.errors.length > 0 ? `<div class="text-red-600 text-xs">${result.errors[0]}</div>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Crear tarjeta de producto
+        function createProductCard(product) {
+            const trustScore = product.trustScore || (product.vendorRating ? product.vendorRating * 2 : 5.0);
+            const displayPrice = formatPrice(product.price, product.currency);
+
+            return `
+                <div class="card hover:shadow-lg transition-shadow cursor-pointer" onclick="window.open('${product.productUrl}', '_blank')">
+                    <div class="relative">
+                        <img
+                            src="${product.imageUrl || '/placeholder.svg'}"
+                            alt="${product.title}"
+                            class="w-full h-48 object-cover"
+                            onerror="this.src='/placeholder.svg'"
+                        />
+                        <div class="absolute top-2 right-2">
+                            <span class="px-2 py-1 rounded-full text-xs font-medium ${getPlatformColor(product.platform)}">
+                                ${getPlatformName(product.platform)}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4">
+                        <h3 class="font-medium text-gray-900 mb-2 line-clamp-2">
+                            ${truncateText(product.title, 80)}
+                        </h3>
+                        
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="text-lg font-bold text-gray-900">
+                                ${displayPrice}
+                            </div>
+                            <div class="flex items-center space-x-1">
+                                <span class="text-sm font-medium ${getTrustScoreColor(trustScore)}">
+                                    ${trustScore.toFixed(1)}
+                                </span>
+                                <span class="text-xs text-gray-500">
+                                    ${getTrustScoreLabel(trustScore)}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        ${product.vendorName ? `
+                            <div class="flex items-center justify-between text-sm text-gray-600">
+                                <span class="truncate">${product.vendorName}</span>
+                                <div class="flex items-center space-x-2">
+                                    ${product.vendorRating ? `
+                                        <div class="flex items-center space-x-1">
+                                            <svg class="w-3 h-3 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                            <span class="text-xs">${product.vendorRating.toFixed(1)}</span>
+                                        </div>
+                                    ` : ''}
+                                    ${product.totalSales ? `
+                                        <span class="text-xs text-gray-500">
+                                            ${product.totalSales}+ ventas
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="mt-3 pt-3 border-t border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="text-xs text-gray-600">Análisis IA</span>
+                                </div>
+                                <button class="text-xs text-primary-600 hover:text-primary-700 font-medium">
+                                    Ver detalles →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Cargar resultados
+        function loadResults() {
+            console.log('🔍 Loading search results...');
+            
+            try {
+                const searchResults = localStorage.getItem('searchResults');
+                const query = localStorage.getItem('searchQuery');
+                
+                if (!searchResults || !query) {
+                    console.error('❌ No search results found in localStorage');
+                    showError();
+                    return;
+                }
+                
+                const data = JSON.parse(searchResults);
+                console.log('📊 Found results:', data);
+                
+                // Mostrar contenido
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('resultsContent').classList.remove('hidden');
+                
+                // Llenar resumen
+                document.getElementById('searchSummary').innerHTML = createSearchSummary(data);
+                
+                // Llenar productos
+                const productsGrid = document.getElementById('productsGrid');
+                if (data.products && data.products.length > 0) {
+                    productsGrid.innerHTML = data.products.map(product => createProductCard(product)).join('');
+                } else {
+                    document.getElementById('noResults').classList.remove('hidden');
+                }
+                
+                console.log('✅ Results displayed successfully');
+                
+            } catch (error) {
+                console.error('❌ Error loading results:', error);
+                showError();
+            }
+        }
+
+        function showError() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').classList.remove('hidden');
+        }
+
+        // Inicializar página
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎉 Search results page loaded');
+            loadResults();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lukia - Buscador Inteligente de Proveedores</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        },
+                        secondary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            900: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .btn-primary {
+            @apply bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors;
+        }
+        .card {
+            @apply bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden;
+        }
+        .container {
+            @apply max-w-7xl mx-auto px-4;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
+        .animate-slide-up { animation: slideUp 0.3s ease-out; }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header class="py-6 border-b border-gray-200">
+        <div class="container">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">L</span>
+                    </div>
+                    <span class="text-xl font-bold text-gray-900">Lukia</span>
+                </div>
+                
+                <nav class="hidden md:flex space-x-6">
+                    <a href="#" class="text-gray-600 hover:text-primary-600 transition-colors">Inicio</a>
+                    <a href="#" class="text-gray-600 hover:text-primary-600 transition-colors">Cómo funciona</a>
+                    <a href="#" class="text-gray-600 hover:text-primary-600 transition-colors">Soporte</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto">
+        <!-- Hero Section -->
+        <div class="text-center py-16">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4 animate-fade-in">
+                Encuentra Proveedores Confiables con IA
+            </h1>
+            <p class="text-xl text-gray-600 mb-8 max-w-2xl mx-auto animate-slide-up">
+                Busca en AliExpress, SHEIN, Temu y más plataformas. 
+                Nuestro Trust Score con IA te ayuda a elegir vendedores seguros.
+            </p>
+            
+            <!-- Search Form -->
+            <div class="max-w-2xl mx-auto animate-slide-up">
+                <form id="searchForm" class="space-y-4">
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <div class="flex-1">
+                            <input
+                                type="text"
+                                id="searchQuery"
+                                placeholder="¿Qué producto estás buscando?"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                required
+                            />
+                        </div>
+                        
+                        <div class="sm:w-48">
+                            <select
+                                id="searchPlatform"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            >
+                                <option value="all">Todas las plataformas</option>
+                                <option value="aliexpress">AliExpress</option>
+                                <option value="shein">SHEIN</option>
+                                <option value="temu">Temu</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button
+                        type="submit"
+                        id="searchButton"
+                        class="w-full sm:w-auto px-8 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white rounded-lg transition-colors flex items-center justify-center space-x-2"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <span>Buscar con IA</span>
+                    </button>
+                </form>
+                
+                <div class="mt-6 flex flex-wrap gap-2 justify-center">
+                    <span class="text-sm text-gray-500">Búsquedas populares:</span>
+                    <button onclick="setQuery('iPhone case')" class="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">iPhone case</button>
+                    <button onclick="setQuery('Wireless earbuds')" class="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">Wireless earbuds</button>
+                    <button onclick="setQuery('Laptop stand')" class="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">Laptop stand</button>
+                    <button onclick="setQuery('Phone charger')" class="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">Phone charger</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Features Section -->
+        <div class="py-16">
+            <h2 class="text-2xl font-semibold text-center mb-12">
+                ¿Por qué elegir Lukia?
+            </h2>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="card p-6 text-center">
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Trust Score con IA</h3>
+                    <p class="text-gray-600">
+                        Nuestro algoritmo analiza vendedores y detecta señales de confianza para que compres seguro.
+                    </p>
+                </div>
+                
+                <div class="card p-6 text-center">
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Búsqueda Multi-plataforma</h3>
+                    <p class="text-gray-600">
+                        Busca en AliExpress, SHEIN, Temu y más plataformas desde un solo lugar.
+                    </p>
+                </div>
+                
+                <div class="card p-6 text-center">
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Análisis de Reviews</h3>
+                    <p class="text-gray-600">
+                        IA que analiza reviews reales, detecta falsas y te da un resumen claro de cada producto.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 text-center">
+            <div class="animate-spin w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <h3 class="text-lg font-semibold mb-2">Buscando productos...</h3>
+            <p class="text-gray-600">Analizando las mejores opciones para ti</p>
+        </div>
+    </div>
+
+    <script>
+        // Funciones para búsqueda
+        function setQuery(query) {
+            document.getElementById('searchQuery').value = query;
+        }
+
+        // Manejar envío del formulario
+        document.getElementById('searchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const query = document.getElementById('searchQuery').value.trim();
+            const platform = document.getElementById('searchPlatform').value;
+            
+            if (!query) {
+                alert('Por favor, ingresa un término de búsqueda');
+                return;
+            }
+            
+            // Mostrar loading
+            const loadingModal = document.getElementById('loadingModal');
+            loadingModal.classList.remove('hidden');
+            loadingModal.classList.add('flex');
+            
+            try {
+                console.log('🔍 Searching for:', { query, platform });
+                
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        query: query, 
+                        platform: platform === 'all' ? 'all' : platform
+                    }),
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('📊 Search results:', data);
+                
+                if (data.success) {
+                    // Guardar resultados y redirigir
+                    localStorage.setItem('searchResults', JSON.stringify(data));
+                    localStorage.setItem('searchQuery', query);
+                    localStorage.setItem('searchPlatform', platform);
+                    
+                    window.location.href = '/search';
+                } else {
+                    throw new Error(data.error || 'Error en la búsqueda');
+                }
+                
+            } catch (error) {
+                console.error('❌ Search error:', error);
+                alert(`Error al buscar productos: ${error.message}. Por favor, intenta nuevamente.`);
+            } finally {
+                // Ocultar loading
+                loadingModal.classList.add('hidden');
+                loadingModal.classList.remove('flex');
+            }
+        });
+
+        // Log para debugging
+        console.log('🎉 Lukia landing page loaded successfully!');
+        console.log('🔍 Ready to search products');
+    </script>
+</body>
+</html>
