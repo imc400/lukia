@@ -145,4 +145,37 @@ export class CacheService {
     const key = `trust:${vendorId}`
     return await this.get(key)
   }
+
+  // Incrementar contador con TTL
+  async increment(key: string, ttl: number = 3600): Promise<number> {
+    try {
+      if (this.redis) {
+        const result = await this.redis.incr(key)
+        await this.redis.expire(key, ttl)
+        return result
+      } else {
+        // Fallback a memoria
+        const cached = this.memoryCache.get(key)
+        let currentValue = 0
+        if (cached && cached.expires > Date.now()) {
+          currentValue = cached.value || 0
+        }
+        const newValue = currentValue + 1
+        const expires = Date.now() + (ttl * 1000)
+        this.memoryCache.set(key, { value: newValue, expires })
+        return newValue
+      }
+    } catch (error) {
+      console.log('[Cache] Using memory fallback for increment:', key)
+      const cached = this.memoryCache.get(key)
+      let currentValue = 0
+      if (cached && cached.expires > Date.now()) {
+        currentValue = cached.value || 0
+      }
+      const newValue = currentValue + 1
+      const expires = Date.now() + (ttl * 1000)
+      this.memoryCache.set(key, { value: newValue, expires })
+      return newValue
+    }
+  }
 }

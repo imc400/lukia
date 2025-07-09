@@ -136,7 +136,9 @@ export class ScrapingMonitor {
       
     } catch (error) {
       console.error('[Monitor] Error collecting metrics:', error)
-      this.createAlert('error', 'Failed to collect scraping metrics', { error: error.message })
+      this.createAlert('error', 'Failed to collect scraping metrics', { 
+        error: error instanceof Error ? error.message : String(error) 
+      })
     }
   }
 

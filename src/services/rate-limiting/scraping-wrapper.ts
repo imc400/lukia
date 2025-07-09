@@ -90,7 +90,7 @@ export class RateLimitedScraper {
       const errorType = this.categorizeError(error)
       await this.rateLimiter.reportFailure(platform, errorType)
       
-      console.log(`[Scraper] Failure for ${platform}: ${errorType} - ${error.message}`)
+      console.log(`[Scraper] Failure for ${platform}: ${errorType} - ${error instanceof Error ? error.message : String(error)}`)
       
       // Reintentar si está configurado
       if (finalOptions.retryOnRateLimit && finalOptions.maxRetries! > 0 && this.isRetryableError(error)) {

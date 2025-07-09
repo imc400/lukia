@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
         let issues = []
         
         // Verificar si hay muchas requests bloqueadas
-        for (const [platform, stats] of allStats.entries()) {
+        Array.from(allStats.entries()).forEach(([platform, stats]) => {
           const blockRate = stats.totalRequests > 0 ? 
             (stats.blockedRequests / stats.totalRequests) * 100 : 0
           
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
             overallHealth = 'degraded'
             issues.push(`Elevated block rate for ${platform}: ${blockRate.toFixed(1)}%`)
           }
-        }
+        })
         
         // Verificar tamaño de cola
         if (scrapingStatus.queueSize > 100) {

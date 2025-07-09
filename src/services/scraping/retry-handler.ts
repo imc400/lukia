@@ -56,13 +56,14 @@ export class RetryHandler {
     let currentProxy: ProxyConfig | null = null
 
     for (let attempt = 1; attempt <= finalConfig.maxRetries + 1; attempt++) {
+      const attemptStartTime = Date.now()
+      
       try {
         // Obtener proxy para el intento
         if (attempt > 1 || currentProxy === null) {
           currentProxy = await this.proxyManager.getBestProxy(finalConfig.platform)
         }
 
-        const attemptStartTime = Date.now()
         const result = await fn(currentProxy || undefined)
         const attemptTime = Date.now() - attemptStartTime
 
