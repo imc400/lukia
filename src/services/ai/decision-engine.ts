@@ -272,9 +272,9 @@ export class AIDecisionEngine {
     const alternatives: any[] = []
 
     // Mejor opción económica real
-    const budgetOptions = market.qualityTiers.budget.filter(p => p.rating >= 4.0)
+    const budgetOptions = market.qualityTiers.budget.filter((p: ProductWithAI) => p.rating >= 4.0)
     if (budgetOptions.length > 0) {
-      const bestBudget = budgetOptions.sort((a, b) => (b.rating || 0) - (a.rating || 0))[0]
+      const bestBudget = budgetOptions.sort((a: ProductWithAI, b: ProductWithAI) => (b.rating || 0) - (a.rating || 0))[0]
       alternatives.push({
         product: bestBudget,
         category: 'budget' as const,
@@ -283,9 +283,9 @@ export class AIDecisionEngine {
     }
 
     // Mejor opción premium real
-    const premiumOptions = market.qualityTiers.premium.filter(p => p.aiAnalysis?.trustScore >= 80)
+    const premiumOptions = market.qualityTiers.premium.filter((p: ProductWithAI) => (p.aiAnalysis?.trustScore ?? 0) >= 80)
     if (premiumOptions.length > 0) {
-      const bestPremium = premiumOptions.sort((a, b) => (b.aiAnalysis?.trustScore || 0) - (a.aiAnalysis?.trustScore || 0))[0]
+      const bestPremium = premiumOptions.sort((a: ProductWithAI, b: ProductWithAI) => (b.aiAnalysis?.trustScore || 0) - (a.aiAnalysis?.trustScore || 0))[0]
       alternatives.push({
         product: bestPremium,
         category: 'premium' as const,
@@ -294,11 +294,11 @@ export class AIDecisionEngine {
     }
 
     // Mejor balance real
-    const balancedOptions = market.qualityTiers.standard.filter(p => 
-      p.rating >= 4.0 && p.aiAnalysis?.trustScore >= 75
+    const balancedOptions = market.qualityTiers.standard.filter((p: ProductWithAI) => 
+      p.rating >= 4.0 && (p.aiAnalysis?.trustScore ?? 0) >= 75
     )
     if (balancedOptions.length > 0) {
-      const bestBalanced = balancedOptions.sort((a, b) => this.calculateRealScore(b) - this.calculateRealScore(a))[0]
+      const bestBalanced = balancedOptions.sort((a: ProductWithAI, b: ProductWithAI) => this.calculateRealScore(b) - this.calculateRealScore(a))[0]
       alternatives.push({
         product: bestBalanced,
         category: 'balanced' as const,
@@ -375,7 +375,7 @@ export class AIDecisionEngine {
       verifications.push(`${totalReviews}+ reviews de clientes`)
     }
 
-    const highTrustProducts = products.filter(p => p.aiAnalysis?.trustScore >= 80).length
+    const highTrustProducts = products.filter(p => (p.aiAnalysis?.trustScore ?? 0) >= 80).length
     if (highTrustProducts > 0) {
       verifications.push(`${highTrustProducts} productos con alta confiabilidad`)
     }
@@ -389,7 +389,7 @@ export class AIDecisionEngine {
   private generateRealConcerns(products: ProductWithAI[]): string[] {
     const concerns: string[] = []
 
-    const lowTrustProducts = products.filter(p => p.aiAnalysis?.trustScore < 70).length
+    const lowTrustProducts = products.filter(p => (p.aiAnalysis?.trustScore ?? 0) < 70).length
     if (lowTrustProducts > 0) {
       concerns.push(`${lowTrustProducts} productos con trust score bajo`)
     }
