@@ -82,10 +82,31 @@ export class GoogleShoppingSearchAPIScraper {
       console.log(`[Google Shopping SearchAPI] API response received`)
       console.log(`[Google Shopping SearchAPI] Raw response:`, JSON.stringify(data, null, 2))
 
-      // Procesar respuesta
+      // Procesar respuesta - buscar productos en diferentes estructuras posibles
+      let shoppingResults = []
+      
       if (data.shopping_results && Array.isArray(data.shopping_results)) {
-        console.log(`[Google Shopping SearchAPI] Found ${data.shopping_results.length} shopping results`)
-        const products = this.parseSearchAPIResponse(data, maxResults)
+        shoppingResults = data.shopping_results
+        console.log(`[Google Shopping SearchAPI] Found shopping_results array with ${shoppingResults.length} items`)
+      } else if (data.results && Array.isArray(data.results)) {
+        shoppingResults = data.results
+        console.log(`[Google Shopping SearchAPI] Found results array with ${shoppingResults.length} items`)
+      } else if (Array.isArray(data)) {
+        shoppingResults = data
+        console.log(`[Google Shopping SearchAPI] Data is direct array with ${shoppingResults.length} items`)
+      } else {
+        // Buscar cualquier array en la respuesta que contenga productos
+        for (const [key, value] of Object.entries(data)) {
+          if (Array.isArray(value) && value.length > 0 && value[0]?.price) {
+            shoppingResults = value
+            console.log(`[Google Shopping SearchAPI] Found products in ${key} array with ${shoppingResults.length} items`)
+            break
+          }
+        }
+      }
+      
+      if (shoppingResults.length > 0) {
+        const products = this.parseSearchAPIResponse({ shopping_results: shoppingResults }, maxResults)
         
         this.successCount++
         const processingTime = Date.now() - startTime
@@ -135,8 +156,9 @@ export class GoogleShoppingSearchAPIScraper {
         const item = shoppingResults[i]
         console.log(`[Google Shopping SearchAPI] Processing item ${i}:`, JSON.stringify(item, null, 2))
         
-        if (item && item.title && (item.link || item.product_link)) {
-          // Extraer precio
+        // Ser más flexible con los campos requeridos - solo necesitamos precio para validar que es un producto
+        if (item && (item.title || item.name) && (item.price || item.extracted_price)) {
+          // Extraer precio usando los campos reales de la API
           const priceInfo = this.extractPrice(item.price || item.extracted_price)
           
           // Extraer rating
@@ -145,32 +167,38 @@ export class GoogleShoppingSearchAPIScraper {
           // Extraer información de reviews
           const reviewInfo = this.extractReviewInfo(item.reviews)
           
+          // Construir título
+          const title = item.title || item.name || `Product ${i + 1}`
+          
+          // Construir URL del producto
+          const productUrl = item.product_link || item.link || item.offers_link || `https://www.google.com/shopping/product/${item.product_id || ''}`
+          
           // Crear producto (vamos a incluir todos para el MVP)
           const product: GoogleShoppingProduct = {
-            title: item.title.trim(),
+            title: title.trim(),
             price: priceInfo.price,
             currency: priceInfo.currency,
-            imageUrl: this.cleanImageUrl(item.thumbnail),
-            productUrl: this.cleanProductUrl(item.product_link || item.link),
+            imageUrl: this.cleanImageUrl(item.thumbnail || item.image),
+            productUrl: this.cleanProductUrl(productUrl),
             platform: Platform.SHEIN, // Marcamos como SHEIN para el MVP
-            vendorName: item.seller || item.source || item.merchant?.name || 'Online Store',
-            vendorRating: this.calculateVendorRating(item.seller || item.source),
+            vendorName: item.seller || item.source || item.merchant?.name || item.store || 'Online Store',
+            vendorRating: this.calculateVendorRating(item.seller || item.source || item.store),
             totalSales: this.estimateSales(),
             reviewCount: reviewInfo.count,
             rating: rating,
             extractedAt: new Date().toISOString(),
-            brand: this.extractBrand(item.title),
-            category: this.determineCategory(item.title),
-            description: item.snippet || `${item.title} available from ${item.seller}`,
-            delivery: item.delivery || 'Standard shipping',
-            inStock: true
+            brand: this.extractBrand(title),
+            category: this.determineCategory(title),
+            description: item.snippet || item.description || `${title} available online`,
+            delivery: item.delivery || item.shipping || 'Standard shipping',
+            inStock: item.in_stock !== false // Asumir disponible a menos que se especifique lo contrario
           }
           
           // Incluir todos los productos para el MVP
           products.push(product)
           console.log(`[Google Shopping SearchAPI] Product added: ${product.title}`)
         } else {
-          console.log(`[Google Shopping SearchAPI] Item rejected - title: ${item?.title}, link: ${item?.link}, product_link: ${item?.product_link}`)
+          console.log(`[Google Shopping SearchAPI] Item rejected - title: ${item?.title || item?.name}, price: ${item?.price || item?.extracted_price}, has required fields: ${!!(item?.title || item?.name) && !!(item?.price || item?.extracted_price)}`)
         }
       }
     } catch (error) {
