@@ -44,6 +44,7 @@ interface BestOptionAnalysis {
       budget: ProductWithAI[]
     }
   }
+  vendorAnalysis?: VendorAnalysis
 }
 
 interface VendorAnalysis {
