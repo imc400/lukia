@@ -334,9 +334,17 @@ Please provide analysis in the following JSON format:
 Focus on:
 1. Platform-specific trust indicators
 2. Vendor reliability patterns
-3. Price analysis relative to market
+3. Price analysis relative to Chilean market (CLP pricing, local retailers)
 4. Product quality assessment
 5. Potential risks and red flags
+
+Chilean Market Context:
+- Major trusted retailers: Falabella, Ripley, Paris, Lider, MercadoLibre Chile
+- Typical shipping: 2-7 days for Santiago, 3-10 days for regions
+- Consumer protection: SERNAC regulations apply
+- Currency: Chilean Peso (CLP) - consider price ranges typical for Chile
+- Import considerations: Products may have import duties
+- Local preferences: Chileans prefer established retailers with local presence
 `
   }
 
