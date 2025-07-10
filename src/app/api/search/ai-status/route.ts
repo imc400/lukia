@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const { query } = statusSchema.parse(body)
     
     const cache = CacheService.getInstance()
-    const cacheKey = `ai_analysis:${query}`
+    const cacheKey = `ai_analysis:cl:${query}`
     
     // Verificar si el análisis está completo
     const analysisResult = await cache.get(cacheKey)
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
     }
     
     const cache = CacheService.getInstance()
-    const cacheKey = `ai_analysis:${query}`
+    const cacheKey = `ai_analysis:cl:${query}`
     
     const analysisResult = await cache.get(cacheKey)
     

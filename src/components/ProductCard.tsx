@@ -61,8 +61,10 @@ export function ProductCard({ product }: ProductCardProps) {
           width={300}
           height={200}
           className="w-full h-48 object-cover"
+          unoptimized={true}
           onError={(e) => {
-            (e.target as HTMLImageElement).src = '/placeholder-product.jpg'
+            const target = e.target as HTMLImageElement
+            target.src = 'https://via.placeholder.com/300x200/e5e7eb/9ca3af?text=Sin+Imagen'
           }}
         />
         <div className="absolute top-2 right-2">

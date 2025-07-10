@@ -148,8 +148,14 @@ export class GoogleShoppingSearchAPIScraper {
       
       for (let i = 0; i < itemsToProcess; i++) {
         const item = shoppingResults[i]
-        // Logging reducido para evitar headers muy grandes
-        console.log(`[Google Shopping SearchAPI] Processing item ${i}: ${item?.title || 'No title'} - $${item?.extracted_price || item?.price || 'No price'}`)
+        
+        // Debug completo del primer producto para entender estructura
+        if (i === 0) {
+          console.log(`[Google Shopping SearchAPI] FULL ITEM STRUCTURE:`, JSON.stringify(item, null, 2))
+        }
+        
+        // Logging reducido para evitar headers muy grandes + debug de imágenes
+        console.log(`[Google Shopping SearchAPI] Processing item ${i}: ${item?.title || 'No title'} - $${item?.extracted_price || item?.price || 'No price'} - IMG: ${item?.thumbnail || item?.image || 'NO_IMG'}`)
         
         // Ser más flexible con los campos requeridos - solo necesitamos precio para validar que es un producto
         if (item && (item.price || item.extracted_price)) {

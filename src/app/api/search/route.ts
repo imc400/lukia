@@ -80,8 +80,8 @@ async function processAIAnalysisBackground(products: any[], query: string) {
       (b.aiAnalysis?.trustScore || 0) - (a.aiAnalysis?.trustScore || 0)
     )
     
-    // Guardar resultado completo en cache con clave específica para AI
-    const cacheKey = `ai_analysis:${query}`
+    // Guardar resultado completo en cache con clave específica para AI (incluir país)
+    const cacheKey = `ai_analysis:cl:${query}`
     await cache.set(cacheKey, {
       products: sortedProducts,
       completedAt: new Date().toISOString(),
@@ -95,6 +95,8 @@ async function processAIAnalysisBackground(products: any[], query: string) {
     }, 3600) // 1 hora de cache
     
     console.log(`[AI Background] Completed analysis for ${sortedProducts.length} products in ${Date.now() - startTime}ms`)
+    console.log(`[AI Background] Cache saved with key: ${cacheKey}`)
+    console.log(`[AI Background] Sample analysis:`, sortedProducts[0]?.aiAnalysis)
     
   } catch (error) {
     console.error('[AI Background] Fatal error during background processing:', error)
