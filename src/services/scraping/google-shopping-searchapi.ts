@@ -56,13 +56,13 @@ export class GoogleShoppingSearchAPIScraper {
     try {
       console.log(`[Google Shopping SearchAPI] Searching for: "${query}" (max: ${maxResults})`)
 
-      // Construir parámetros para SearchAPI con Google Shopping
+      // Construir parámetros para SearchAPI con Google Shopping (configurado para Chile)
       const searchParams = new URLSearchParams({
         engine: 'google_shopping',
         q: query,
         api_key: this.config.apiKey,
-        gl: 'us', // Geolocation: US
-        hl: 'en'  // Language: English
+        gl: 'cl', // Geolocation: Chile
+        hl: 'es'  // Language: Spanish
       })
 
       // Realizar request a SearchAPI con timeout agresivo
@@ -173,7 +173,7 @@ export class GoogleShoppingSearchAPIScraper {
             title: title.trim(),
             price: priceInfo.price,
             currency: priceInfo.currency,
-            imageUrl: this.cleanImageUrl(item.thumbnail || item.image),
+            imageUrl: this.cleanImageUrl(item.thumbnail || item.image || item.img || item.picture),
             productUrl: this.cleanProductUrl(productUrl),
             platform: Platform.SHEIN, // Marcamos como SHEIN para el MVP
             vendorName: item.seller || item.source || item.merchant?.name || item.store || 'Online Store',
@@ -249,10 +249,11 @@ export class GoogleShoppingSearchAPIScraper {
           price = parseFloat(match[0])
         }
         
-        // Detectar moneda
-        if (priceData.includes('$')) currency = 'USD'
+        // Detectar moneda (priorizar CLP para Chile)
+        if (priceData.includes('CLP') || priceData.includes('$')) currency = 'CLP'
         else if (priceData.includes('€')) currency = 'EUR'
         else if (priceData.includes('£')) currency = 'GBP'
+        else if (priceData.includes('USD')) currency = 'USD'
         
       } else if (typeof priceData === 'object' && priceData !== null) {
         price = parseFloat(priceData.value || priceData.price || 0)
@@ -394,23 +395,31 @@ export class GoogleShoppingSearchAPIScraper {
   }
 
   /**
-   * Limpiar URL de imagen
+   * Limpiar URL de imagen con mejor manejo de formatos
    */
   private cleanImageUrl(imageUrl: string): string {
-    if (!imageUrl) return ''
+    if (!imageUrl) {
+      // Imagen placeholder si no hay imagen disponible
+      return 'https://via.placeholder.com/300x300?text=Sin+Imagen'
+    }
     
     try {
-      if (imageUrl.startsWith('//')) {
-        return `https:${imageUrl}`
+      // Limpiar URL
+      let cleanUrl = imageUrl.trim()
+      
+      if (cleanUrl.startsWith('//')) {
+        cleanUrl = `https:${cleanUrl}`
+      } else if (!cleanUrl.startsWith('http')) {
+        cleanUrl = `https://${cleanUrl}`
       }
       
-      if (!imageUrl.startsWith('http')) {
-        return `https://${imageUrl}`
-      }
+      // Verificar que sea una URL válida
+      new URL(cleanUrl)
       
-      return imageUrl
+      return cleanUrl
     } catch (error) {
-      return imageUrl
+      console.log('[Google Shopping] Invalid image URL:', imageUrl)
+      return 'https://via.placeholder.com/300x300?text=Sin+Imagen'
     }
   }
 
