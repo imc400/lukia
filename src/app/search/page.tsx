@@ -6,6 +6,7 @@ import { Header } from '@/components/Header'
 import { ProductCard } from '@/components/ProductCard'
 import { SearchSummary } from '@/components/SearchSummary'
 import { formatPrice, getPlatformName, getPlatformColor } from '@/utils'
+import { useAIPolling } from '@/hooks/useAIPolling'
 
 interface SearchResult {
   success: boolean
@@ -25,6 +26,13 @@ function SearchContent() {
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // Hook de polling para AI analysis
+  const { aiResult, isPolling, progressPercentage } = useAIPolling({
+    query: searchResult?.query || '',
+    enabled: !!(searchResult?.aiAnalysis?.enabled && searchResult?.query),
+    interval: 3000
+  })
 
   useEffect(() => {
     const resultsParam = searchParams.get('results')
@@ -47,6 +55,41 @@ function SearchContent() {
     
     setIsLoading(false)
   }, [searchParams])
+
+  // Actualizar productos cuando AI analysis esté completo
+  useEffect(() => {
+    if (aiResult?.status === 'completed' && aiResult.data && searchResult) {
+      console.log('[AI Polling] Updating products with AI analysis')
+      
+      const updatedProducts = searchResult.products.map(product => {
+        const aiProduct = aiResult.data.products.find(p => p.title === product.title)
+        if (aiProduct?.aiAnalysis) {
+          return {
+            ...product,
+            aiAnalysis: aiProduct.aiAnalysis
+          }
+        }
+        return product
+      })
+      
+      // Ordenar por trust score si hay análisis AI
+      const sortedProducts = updatedProducts.sort((a, b) => {
+        const scoreA = a.aiAnalysis?.trustScore ?? 0
+        const scoreB = b.aiAnalysis?.trustScore ?? 0
+        return scoreB - scoreA
+      })
+      
+      setSearchResult(prev => prev ? {
+        ...prev,
+        products: sortedProducts,
+        aiAnalysis: {
+          ...prev.aiAnalysis,
+          status: 'completed',
+          message: `Análisis completado: ${aiResult.data.totalAnalyzed} productos analizados`
+        }
+      } : null)
+    }
+  }, [aiResult, searchResult])
 
   const performSearch = async (query: string, platform: string) => {
     setIsLoading(true)
@@ -130,7 +173,11 @@ function SearchContent() {
       <SearchSummary 
         query={searchResult.query}
         totalResults={searchResult.totalResults}
-        aiAnalysis={searchResult.aiAnalysis}
+        aiAnalysis={{
+          ...searchResult.aiAnalysis,
+          isPolling,
+          progressPercentage: isPolling ? progressPercentage : 100
+        }}
       />
       
       {searchResult.products.length > 0 ? (

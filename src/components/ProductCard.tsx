@@ -13,6 +13,16 @@ interface ProductCardProps {
     vendorRating?: number
     totalSales?: number
     trustScore?: number
+    aiAnalysis?: {
+      status: 'processing' | 'completed' | 'failed'
+      trustScore: number
+      riskLevel: 'low' | 'medium' | 'high'
+      recommendations: string[]
+      warnings: string[]
+      summary: string
+      confidence: number
+      completedAt?: string
+    }
   }
 }
 
@@ -21,8 +31,26 @@ export function ProductCard({ product }: ProductCardProps) {
     window.open(product.productUrl, '_blank', 'noopener,noreferrer')
   }
 
-  const trustScore = product.trustScore || (product.vendorRating ? product.vendorRating * 2 : 5.0)
+  // Usar AI trust score si está disponible, sino fallback a rating del vendor
+  const trustScore = product.aiAnalysis?.trustScore ?? 
+                    product.trustScore ?? 
+                    (product.vendorRating ? product.vendorRating * 20 : 70)
+  
   const displayPrice = formatPrice(product.price, product.currency)
+  
+  // Determinar estado del análisis AI
+  const aiStatus = product.aiAnalysis?.status || 'processing'
+  const hasAIData = aiStatus === 'completed' && product.aiAnalysis
+  
+  // Función para obtener color del riesgo
+  const getRiskColor = (risk: string) => {
+    switch (risk) {
+      case 'low': return 'text-green-600 bg-green-50'
+      case 'medium': return 'text-yellow-600 bg-yellow-50'
+      case 'high': return 'text-red-600 bg-red-50'
+      default: return 'text-gray-600 bg-gray-50'
+    }
+  }
 
   return (
     <div className="card hover:shadow-lg transition-shadow cursor-pointer" onClick={handleClick}>
@@ -85,17 +113,63 @@ export function ProductCard({ product }: ProductCardProps) {
         )}
         
         <div className="mt-3 pt-3 border-t border-gray-100">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-xs text-gray-600">Análisis IA</span>
+          {hasAIData && product.aiAnalysis ? (
+            // Análisis IA Completado
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-xs font-medium text-gray-900">Análisis IA Completado</span>
+                </div>
+                <div className={`px-2 py-1 rounded-full text-xs font-medium ${getRiskColor(product.aiAnalysis.riskLevel)}`}>
+                  {product.aiAnalysis.riskLevel === 'low' ? 'Bajo Riesgo' : 
+                   product.aiAnalysis.riskLevel === 'medium' ? 'Riesgo Medio' : 'Alto Riesgo'}
+                </div>
+              </div>
+              
+              {product.aiAnalysis.recommendations.length > 0 && (
+                <div className="text-xs text-gray-600">
+                  <strong>💡 Recomendación:</strong> {product.aiAnalysis.recommendations[0]}
+                </div>
+              )}
+              
+              {product.aiAnalysis.warnings.length > 0 && (
+                <div className="text-xs text-red-600">
+                  <strong>⚠️ Advertencia:</strong> {product.aiAnalysis.warnings[0]}
+                </div>
+              )}
+              
+              <div className="text-xs text-gray-500">
+                Confianza: {product.aiAnalysis.confidence}% • Trust Score: {product.aiAnalysis.trustScore}/100
+              </div>
             </div>
-            <button className="text-xs text-primary-600 hover:text-primary-700 font-medium">
-              Ver detalles →
-            </button>
-          </div>
+          ) : aiStatus === 'processing' ? (
+            // Análisis en Progreso
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <svg className="w-4 h-4 text-blue-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span className="text-xs text-blue-600">Analizando con IA...</span>
+              </div>
+              <div className="w-16 h-1 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-500 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+              </div>
+            </div>
+          ) : (
+            // Análisis Fallido
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="text-xs text-gray-500">Análisis básico</span>
+              </div>
+              <span className="text-xs text-gray-400">Score: {trustScore.toFixed(0)}/100</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
