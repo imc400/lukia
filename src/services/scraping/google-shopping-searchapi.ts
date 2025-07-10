@@ -142,34 +142,29 @@ export class GoogleShoppingSearchAPIScraper {
           // Extraer información de reviews
           const reviewInfo = this.extractReviewInfo(item.reviews)
           
-          // Determinar si es de una tienda fashion (para simular SHEIN)
-          const isFashionStore = this.isFashionRelated(item.title, item.source)
-          
-          // Crear producto
+          // Crear producto (vamos a incluir todos para el MVP)
           const product: GoogleShoppingProduct = {
             title: item.title.trim(),
             price: priceInfo.price,
             currency: priceInfo.currency,
             imageUrl: this.cleanImageUrl(item.thumbnail),
-            productUrl: this.cleanProductUrl(item.link),
+            productUrl: this.cleanProductUrl(item.product_link || item.link),
             platform: Platform.SHEIN, // Marcamos como SHEIN para el MVP
-            vendorName: item.source || item.merchant?.name || 'Fashion Store',
-            vendorRating: this.calculateVendorRating(item.source),
+            vendorName: item.seller || item.source || item.merchant?.name || 'Online Store',
+            vendorRating: this.calculateVendorRating(item.seller || item.source),
             totalSales: this.estimateSales(),
             reviewCount: reviewInfo.count,
             rating: rating,
             extractedAt: new Date().toISOString(),
             brand: this.extractBrand(item.title),
-            category: 'Fashion & Apparel',
-            description: item.snippet || '',
+            category: this.determineCategory(item.title),
+            description: item.snippet || `${item.title} available from ${item.seller}`,
             delivery: item.delivery || 'Standard shipping',
             inStock: true
           }
           
-          // Solo incluir si es relevante para fashion/e-commerce
-          if (isFashionStore || this.isFashionProduct(product.title)) {
-            products.push(product)
-          }
+          // Incluir todos los productos para el MVP
+          products.push(product)
         }
       }
     } catch (error) {
@@ -322,6 +317,32 @@ export class GoogleShoppingSearchAPIScraper {
    */
   private estimateSales(): number {
     return Math.floor(Math.random() * 10000) + 100
+  }
+
+  /**
+   * Determinar categoría del producto
+   */
+  private determineCategory(title: string): string {
+    const lowerTitle = title.toLowerCase()
+    
+    const categories = {
+      'Electronics': ['laptop', 'phone', 'tablet', 'camera', 'headphones', 'speaker', 'monitor', 'keyboard', 'mouse'],
+      'Fashion': ['dress', 'shirt', 'pants', 'shoes', 'jacket', 'sweater', 'jeans', 'top', 'blouse', 'skirt'],
+      'Home & Garden': ['furniture', 'decor', 'kitchen', 'bathroom', 'bedroom', 'living room', 'garden', 'outdoor'],
+      'Sports & Outdoors': ['fitness', 'exercise', 'outdoor', 'sports', 'camping', 'hiking', 'bike', 'gym'],
+      'Beauty & Health': ['makeup', 'skincare', 'beauty', 'health', 'wellness', 'cosmetics', 'perfume'],
+      'Books & Media': ['book', 'magazine', 'cd', 'dvd', 'game', 'media', 'entertainment'],
+      'Toys & Games': ['toy', 'game', 'puzzle', 'doll', 'action figure', 'board game', 'kids'],
+      'Automotive': ['car', 'auto', 'vehicle', 'tire', 'engine', 'brake', 'battery']
+    }
+    
+    for (const [category, keywords] of Object.entries(categories)) {
+      if (keywords.some(keyword => lowerTitle.includes(keyword))) {
+        return category
+      }
+    }
+    
+    return 'General'
   }
 
   /**

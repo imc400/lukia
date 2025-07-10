@@ -1,6 +1,5 @@
 import { Platform } from '@prisma/client'
 import { ScrapingResult, SearchParams } from '@/types'
-import { scrapeAliExpress } from './enhanced-aliexpress'
 import { scrapeShein } from './google-shopping-searchapi'
 import { demoScrape, isDemoMode } from './demo'
 import { CacheService } from '@/lib/redis'
@@ -19,7 +18,7 @@ export class ScrapingService {
     
     // Determinar qué plataformas buscar
     const platformsToSearch = platform === 'all' 
-      ? [Platform.ALIEXPRESS, Platform.SHEIN] // AliExpress y SHEIN disponibles
+      ? [Platform.SHEIN] // Solo SHEIN (Google Shopping) disponible
       : [platform as Platform]
     
     // Log de búsqueda
@@ -46,9 +45,6 @@ export class ScrapingService {
           result = await demoScrape(query, 20)
         } else {
           switch (plt) {
-            case Platform.ALIEXPRESS:
-              result = await scrapeAliExpress(query, 20)
-              break
             case Platform.SHEIN:
               result = await scrapeShein(query, 20)
               break
@@ -56,7 +52,7 @@ export class ScrapingService {
               result = {
                 success: false,
                 products: [],
-                errors: [`Platform ${plt} not implemented yet`],
+                errors: [`Platform ${plt} not available in MVP. Use SHEIN instead.`],
                 platform: plt,
                 totalFound: 0,
                 processingTime: 0
