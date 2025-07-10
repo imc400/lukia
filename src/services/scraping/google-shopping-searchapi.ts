@@ -183,8 +183,8 @@ export class GoogleShoppingSearchAPIScraper {
             productUrl: this.cleanProductUrl(productUrl),
             platform: Platform.SHEIN, // Marcamos como SHEIN para el MVP
             vendorName: item.seller || item.source || item.merchant?.name || item.store || 'Online Store',
-            vendorRating: this.calculateVendorRating(item.seller || item.source || item.store),
-            totalSales: this.estimateSales(),
+            vendorRating: this.extractRealVendorRating(item),
+            totalSales: this.extractRealSales(item),
             reviewCount: reviewInfo.count,
             rating: rating,
             extractedAt: new Date().toISOString(),
@@ -325,34 +325,53 @@ export class GoogleShoppingSearchAPIScraper {
   }
 
   /**
-   * Calcular rating del vendedor basado en la fuente
+   * Extraer rating real del vendedor desde Google Shopping
    */
-  private calculateVendorRating(source: string): number {
-    const knownStores: { [key: string]: number } = {
-      'amazon': 4.5,
-      'ebay': 4.2,
-      'walmart': 4.3,
-      'target': 4.4,
-      'shein': 4.1,
-      'h&m': 4.2,
-      'zara': 4.0
+  private extractRealVendorRating(item: any): number {
+    // Buscar rating real en los datos de Google Shopping
+    if (item.vendor_rating || item.seller_rating) {
+      return parseFloat(item.vendor_rating || item.seller_rating)
     }
     
-    const lowerSource = source?.toLowerCase() || ''
+    // Si no hay rating específico del vendedor, usar solo datos conocidos
+    const knownStores: { [key: string]: number } = {
+      'amazon': 4.5,
+      'mercadolibre': 4.3,
+      'falabella': 4.4,
+      'ripley': 4.2,
+      'linio': 4.0,
+      'paris': 4.1
+    }
+    
+    const source = (item.seller || item.source || '').toLowerCase()
     for (const [store, rating] of Object.entries(knownStores)) {
-      if (lowerSource.includes(store)) {
+      if (source.includes(store)) {
         return rating
       }
     }
     
-    return 3.8 + Math.random() * 1.0 // Rating aleatorio entre 3.8 y 4.8
+    // Si no tenemos datos reales, no inventar - retornar 0
+    return 0
   }
 
   /**
-   * Estimar ventas del producto
+   * Extraer ventas reales del producto
    */
-  private estimateSales(): number {
-    return Math.floor(Math.random() * 10000) + 100
+  private extractRealSales(item: any): number {
+    // Buscar datos reales de ventas en Google Shopping
+    if (item.sales_count || item.sold_count) {
+      return parseInt(item.sales_count || item.sold_count)
+    }
+    
+    // Extraer de texto de reviews si está disponible
+    const reviewText = item.reviews || ''
+    const salesMatch = reviewText.match(/(\d+)\s*(ventas|vendido|sold)/i)
+    if (salesMatch) {
+      return parseInt(salesMatch[1])
+    }
+    
+    // Si no hay datos reales, no inventar - retornar 0
+    return 0
   }
 
   /**

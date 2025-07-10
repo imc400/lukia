@@ -41,6 +41,8 @@ export function useAIPolling({
 
     try {
       setError(null)
+      console.log(`[AI Polling] Checking status for query: "${query}"`)
+      
       const response = await fetch('/api/search/ai-status', {
         method: 'POST',
         headers: {

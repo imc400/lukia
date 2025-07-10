@@ -5,6 +5,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { Header } from '@/components/Header'
 import { ProductCard } from '@/components/ProductCard'
 import { SearchSummary } from '@/components/SearchSummary'
+import { AIRecommendations } from '@/components/AIRecommendations'
 import { formatPrice, getPlatformName, getPlatformColor } from '@/utils'
 import { useAIPolling } from '@/hooks/useAIPolling'
 
@@ -178,6 +179,11 @@ function SearchContent() {
           isPolling,
           progressPercentage: isPolling ? progressPercentage : 100
         }}
+      />
+      
+      <AIRecommendations 
+        products={searchResult.products}
+        analysisCompleted={aiResult?.status === 'completed'}
       />
       
       {searchResult.products.length > 0 ? (
