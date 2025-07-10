@@ -9,6 +9,7 @@ interface AIDecisionResult {
       reasons: string[]
       alternatives: any[]
       marketInsights: any
+      vendorAnalysis?: any
     }
     totalAnalyzed: number
     completedAt: string
