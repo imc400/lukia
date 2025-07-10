@@ -62,17 +62,25 @@ export class ProductAnalyzer {
   private rateLimitDelay: number = 1000 // 1 segundo entre requests
 
   constructor() {
-    const apiKey = process.env.OPENAI_API_KEY?.trim()
+    let apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) {
       throw new Error('OPENAI_API_KEY is required')
     }
+    
+    // Limpiar la API key de espacios, saltos de línea y caracteres extraños
+    apiKey = apiKey.replace(/\s+/g, '').trim()
     
     // Validar formato de la API key
     if (!apiKey.startsWith('sk-')) {
       throw new Error('Invalid OpenAI API key format')
     }
     
-    console.log(`[AI] Initializing OpenAI with key: ${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 10)}`)
+    // Validar longitud aproximada de la API key
+    if (apiKey.length < 50) {
+      throw new Error('OpenAI API key appears to be truncated')
+    }
+    
+    console.log(`[AI] Initializing OpenAI with key: ${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 10)} (length: ${apiKey.length})`)
     
     this.openai = new OpenAI({
       apiKey: apiKey
