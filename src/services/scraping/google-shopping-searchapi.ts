@@ -49,7 +49,7 @@ export class GoogleShoppingSearchAPIScraper {
   /**
    * Buscar productos usando Google Shopping a través de SearchAPI.io
    */
-  async search(query: string, maxResults: number = 20): Promise<ScrapingResult> {
+  async search(query: string, maxResults: number = 60): Promise<ScrapingResult> {
     const startTime = Date.now()
     this.requestCount++
 
@@ -62,12 +62,16 @@ export class GoogleShoppingSearchAPIScraper {
         q: query,
         api_key: this.config.apiKey,
         gl: 'cl', // Geolocation: Chile
-        hl: 'es'  // Language: Spanish
+        hl: 'es', // Language: Spanish
+        num: '100', // Solicitar máximo de resultados (hasta 100)
+        start: '0',  // Empezar desde el primer resultado
+        safe: 'off', // Desactivar filtro seguro para más resultados
+        no_cache: 'false' // Permitir cache para velocidad
       })
 
-      // Realizar request a SearchAPI con timeout agresivo
+      // Realizar request a SearchAPI con timeout optimizado para más resultados
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 segundos max
+      const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 segundos para 50+ productos
       
       const response = await fetch(`${this.config.endpoint}?${searchParams}`, {
         method: 'GET',
@@ -143,15 +147,15 @@ export class GoogleShoppingSearchAPIScraper {
     try {
       const shoppingResults = data.shopping_results || []
       
-      // Procesar máximo 15 productos para respuesta más rápida
-      const itemsToProcess = Math.min(shoppingResults.length, maxResults, 15)
+      // Procesar hasta 50 productos para plataforma robusta (de hasta 100 disponibles)
+      const itemsToProcess = Math.min(shoppingResults.length, maxResults, 50)
       
       for (let i = 0; i < itemsToProcess; i++) {
         const item = shoppingResults[i]
         
-        // Debug completo del primer producto para entender estructura
-        if (i === 0) {
-          console.log(`[Google Shopping SearchAPI] FULL ITEM STRUCTURE:`, JSON.stringify(item, null, 2))
+        // Debug completo del primer producto para entender estructura (solo primeros 3)
+        if (i < 3) {
+          console.log(`[Google Shopping SearchAPI] ITEM ${i} STRUCTURE:`, JSON.stringify(item, null, 2))
         }
         
         // Logging reducido para evitar headers muy grandes + debug de imágenes
@@ -523,7 +527,7 @@ export function getGoogleShoppingSearchAPIScraper(): GoogleShoppingSearchAPIScra
   return googleShoppingSearchAPIInstance
 }
 
-export async function scrapeShein(query: string, maxResults: number = 20): Promise<ScrapingResult> {
+export async function scrapeShein(query: string, maxResults: number = 50): Promise<ScrapingResult> {
   const scraper = getGoogleShoppingSearchAPIScraper()
   return scraper.search(query, maxResults)
 }

@@ -48,9 +48,9 @@ export class ScrapingService {
             case Platform.SHEIN:
               // Timeout agresivo para evitar timeouts de respuesta
               result = await Promise.race([
-                scrapeShein(query, 20),
+                scrapeShein(query, 50), // Aumentar a 50 productos
                 new Promise<ScrapingResult>((_, reject) => 
-                  setTimeout(() => reject(new Error('Scraping timeout')), 15000)
+                  setTimeout(() => reject(new Error('Scraping timeout')), 20000) // Más tiempo para procesar más productos
                 )
               ])
               break

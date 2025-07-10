@@ -24,11 +24,13 @@ async function processAIAnalysisBackground(products: any[], query: string) {
     
     const analyzer = getProductAnalyzer()
     
-    // Procesar todos los productos (sin límite para background processing)
+    // Procesar todos los productos en lotes para mayor eficiencia
+    const batchSize = 10 // Procesar en lotes de 10
     const analysisPromises = products.map(async (product, index) => {
       try {
-        // Delay progresivo para evitar rate limiting
-        await new Promise(resolve => setTimeout(resolve, index * 200))
+        // Delay por lotes (más eficiente para 50+ productos)
+        const batchIndex = Math.floor(index / batchSize)
+        await new Promise(resolve => setTimeout(resolve, batchIndex * 300 + (index % batchSize) * 50))
         
         const analysis = await analyzer.analyzeProduct({
           title: product.title,
