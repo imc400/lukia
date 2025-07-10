@@ -6,8 +6,12 @@ import { Header } from '@/components/Header'
 import { ProductCard } from '@/components/ProductCard'
 import { SearchSummary } from '@/components/SearchSummary'
 import { AIRecommendations } from '@/components/AIRecommendations'
+import { AIBestChoice } from '@/components/AIBestChoice'
+import { AIVendorAnalysis } from '@/components/AIVendorAnalysis'
+import { AIComparison } from '@/components/AIComparison'
 import { formatPrice, getPlatformName, getPlatformColor } from '@/utils'
 import { useAIPolling } from '@/hooks/useAIPolling'
+import { useAIDecision } from '@/hooks/useAIDecision'
 
 interface SearchResult {
   success: boolean
@@ -33,6 +37,13 @@ function SearchContent() {
     query: searchResult?.query || '',
     enabled: !!(searchResult?.aiAnalysis?.enabled && searchResult?.query),
     interval: 3000
+  })
+
+  // Hook para AI Decision Engine
+  const { decisionResult, isPolling: isDecisionPolling } = useAIDecision({
+    query: searchResult?.query || '',
+    enabled: !!(searchResult?.aiAnalysis?.enabled && searchResult?.query),
+    interval: 4000
   })
 
   useEffect(() => {
@@ -195,6 +206,30 @@ function SearchContent() {
           progressPercentage: isPolling ? progressPercentage : 100
         }}
       />
+
+      {/* AI Best Choice - Mostrar cuando esté disponible */}
+      {decisionResult?.status === 'completed' && decisionResult.data?.bestChoice && (
+        <AIBestChoice 
+          product={decisionResult.data.bestChoice.bestProduct}
+          reasons={decisionResult.data.bestChoice.reasons}
+          marketInsights={decisionResult.data.bestChoice.marketInsights}
+        />
+      )}
+
+      {/* AI Vendor Analysis - Mostrar para el vendedor de la mejor opción */}
+      {decisionResult?.status === 'completed' && decisionResult.data?.bestChoice?.vendorAnalysis && (
+        <AIVendorAnalysis 
+          analysis={decisionResult.data.bestChoice.vendorAnalysis}
+        />
+      )}
+
+      {/* AI Comparison - Mostrar alternativas */}
+      {decisionResult?.status === 'completed' && decisionResult.data?.bestChoice?.alternatives?.length > 0 && (
+        <AIComparison 
+          alternatives={decisionResult.data.bestChoice.alternatives}
+          marketInsights={decisionResult.data.bestChoice.marketInsights}
+        />
+      )}
       
       <AIRecommendations 
         products={searchResult.products}

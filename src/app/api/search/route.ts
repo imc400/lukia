@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getScrapingService } from '@/services/scraping'
 import { SearchParams, Platform } from '@/types'
 import { getProductAnalyzer } from '@/services/ai/product-analyzer'
+import { getDecisionEngine } from '@/services/ai/decision-engine'
 import { z } from 'zod'
 import { CacheService } from '@/lib/redis'
 
@@ -82,11 +83,35 @@ async function processAIAnalysisBackground(products: any[], query: string) {
       (b.aiAnalysis?.trustScore || 0) - (a.aiAnalysis?.trustScore || 0)
     )
     
+    // AI Decision Engine: Análisis inteligente de mejor opción
+    let decisionAnalysis = null
+    try {
+      const decisionEngine = getDecisionEngine()
+      decisionAnalysis = await decisionEngine.findBestOption(sortedProducts)
+      
+      // Agregar análisis del vendedor de la mejor opción
+      if (decisionAnalysis?.bestProduct) {
+        try {
+          decisionAnalysis.vendorAnalysis = decisionEngine.analyzeVendor(
+            decisionAnalysis.bestProduct.vendorName,
+            sortedProducts
+          )
+        } catch (vendorError) {
+          console.error('[AI Decision] Error analyzing vendor:', vendorError)
+        }
+      }
+      
+      console.log(`[AI Decision] Best choice: ${decisionAnalysis.bestProduct.title} with ${decisionAnalysis.reasons.length} reasons`)
+    } catch (error) {
+      console.error('[AI Decision] Error in decision analysis:', error)
+    }
+
     // Cache inteligente: guardar resultado completo con clave específica
     const normalizedQuery = query.toLowerCase().trim()
-    const cacheKey = `ai_analysis:cl:v2:${normalizedQuery}` // v2 para nueva versión con reviews
+    const cacheKey = `ai_analysis:cl:v3:${normalizedQuery}` // v3 para nueva versión con decision engine
     const cacheData = {
       products: sortedProducts,
+      decisionAnalysis,
       completedAt: new Date().toISOString(),
       totalAnalyzed: sortedProducts.length,
       processingTime: Date.now() - startTime,
