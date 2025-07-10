@@ -3,6 +3,7 @@ import { getScrapingService } from '@/services/scraping'
 import { SearchParams, Platform } from '@/types'
 import { getProductAnalyzer } from '@/services/ai/product-analyzer'
 import { z } from 'zod'
+import { CacheService } from '@/lib/redis'
 
 const searchSchema = z.object({
   query: z.string().min(1).max(100),
@@ -10,6 +11,95 @@ const searchSchema = z.object({
   maxResults: z.number().min(1).max(50).optional().default(20),
   includeAI: z.boolean().optional().default(true)
 })
+
+/**
+ * Procesar análisis de AI en background y guardar en cache
+ */
+async function processAIAnalysisBackground(products: any[], query: string) {
+  const startTime = Date.now()
+  const cache = CacheService.getInstance()
+  
+  try {
+    console.log(`[AI Background] Starting analysis for ${products.length} products`)
+    
+    const analyzer = getProductAnalyzer()
+    
+    // Procesar todos los productos (sin límite para background processing)
+    const analysisPromises = products.map(async (product, index) => {
+      try {
+        // Delay progresivo para evitar rate limiting
+        await new Promise(resolve => setTimeout(resolve, index * 200))
+        
+        const analysis = await analyzer.analyzeProduct({
+          title: product.title,
+          price: product.price,
+          currency: product.currency,
+          imageUrl: product.imageUrl,
+          vendorName: product.vendorName,
+          vendorRating: product.vendorRating,
+          totalSales: product.totalSales,
+          platform: product.platform,
+          reviews: product.reviews || []
+        })
+        
+        return {
+          ...product,
+          aiAnalysis: {
+            status: 'completed',
+            trustScore: analysis.trustScore,
+            riskLevel: analysis.riskAssessment.level,
+            recommendations: analysis.recommendations.slice(0, 3),
+            warnings: analysis.warnings,
+            summary: analysis.summary,
+            confidence: analysis.confidence,
+            completedAt: new Date().toISOString()
+          }
+        }
+      } catch (error) {
+        console.error(`[AI Background] Error analyzing product ${product.title}:`, error)
+        return {
+          ...product,
+          aiAnalysis: {
+            status: 'failed',
+            trustScore: 50,
+            riskLevel: 'medium',
+            recommendations: ['AI analysis failed'],
+            warnings: ['Analysis error occurred'],
+            summary: 'Basic product information only',
+            confidence: 30,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          }
+        }
+      }
+    })
+    
+    const analyzedProducts = await Promise.all(analysisPromises)
+    
+    // Ordenar por trust score
+    const sortedProducts = analyzedProducts.sort((a, b) => 
+      (b.aiAnalysis?.trustScore || 0) - (a.aiAnalysis?.trustScore || 0)
+    )
+    
+    // Guardar resultado completo en cache con clave específica para AI
+    const cacheKey = `ai_analysis:${query}`
+    await cache.set(cacheKey, {
+      products: sortedProducts,
+      completedAt: new Date().toISOString(),
+      totalAnalyzed: sortedProducts.length,
+      processingTime: Date.now() - startTime,
+      statistics: {
+        highTrustProducts: sortedProducts.filter(p => p.aiAnalysis?.trustScore >= 80).length,
+        lowRiskProducts: sortedProducts.filter(p => p.aiAnalysis?.riskLevel === 'low').length,
+        averageTrustScore: sortedProducts.reduce((sum, p) => sum + (p.aiAnalysis?.trustScore || 0), 0) / sortedProducts.length
+      }
+    }, 3600) // 1 hora de cache
+    
+    console.log(`[AI Background] Completed analysis for ${sortedProducts.length} products in ${Date.now() - startTime}ms`)
+    
+  } catch (error) {
+    console.error('[AI Background] Fatal error during background processing:', error)
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,74 +123,35 @@ export async function POST(request: NextRequest) {
       return [...acc, ...result.products]
     }, [] as any[])
 
-    // Aplicar análisis de IA si está habilitado
+    // Respuesta inmediata con productos básicos
     let analyzedProducts = allProducts
-    let aiAnalysisTime = 0
     
+    // Si se solicita AI, iniciar análisis en background (no blocking)
     if (validatedData.includeAI && allProducts.length > 0) {
-      const aiStartTime = Date.now()
-      console.log(`[AI Analysis] Starting analysis for ${allProducts.length} products`)
+      console.log(`[AI Analysis] Starting background analysis for ${allProducts.length} products`)
       
-      try {
-        const analyzer = getProductAnalyzer()
-        
-        // Analizar productos (máximo 10 para evitar timeouts)
-        const productsToAnalyze = allProducts.slice(0, 10)
-        const analysisPromises = productsToAnalyze.map(async (product) => {
-          try {
-            const analysis = await analyzer.analyzeProduct({
-              title: product.title,
-              price: product.price,
-              currency: product.currency,
-              imageUrl: product.imageUrl,
-              vendorName: product.vendorName,
-              vendorRating: product.vendorRating,
-              totalSales: product.totalSales,
-              platform: product.platform,
-              reviews: product.reviews || []
-            })
-            
-            return {
-              ...product,
-              aiAnalysis: {
-                trustScore: analysis.trustScore,
-                riskLevel: analysis.riskAssessment.level,
-                recommendations: analysis.recommendations.slice(0, 3),
-                warnings: analysis.warnings,
-                summary: analysis.summary,
-                confidence: analysis.confidence
-              }
-            }
-          } catch (error) {
-            console.error(`[AI Analysis] Error analyzing product ${product.title}:`, error)
-            return {
-              ...product,
-              aiAnalysis: {
-                trustScore: 50,
-                riskLevel: 'medium',
-                recommendations: ['AI analysis not available'],
-                warnings: ['Analysis failed'],
-                summary: 'Basic product information only',
-                confidence: 30
-              }
-            }
-          }
-        })
-        
-        const analyzedProductsWithAI = await Promise.all(analysisPromises)
-        
-        // Ordenar productos por trust score (más alto primero)
-        analyzedProducts = [
-          ...analyzedProductsWithAI.sort((a, b) => (b.aiAnalysis?.trustScore || 0) - (a.aiAnalysis?.trustScore || 0)),
-          ...allProducts.slice(10) // Productos no analizados
-        ]
-        
-        aiAnalysisTime = Date.now() - aiStartTime
-        console.log(`[AI Analysis] Completed analysis for ${productsToAnalyze.length} products in ${aiAnalysisTime}ms`)
-        
-      } catch (error) {
-        console.error('[AI Analysis] Error during product analysis:', error)
-      }
+      // Procesar AI en background sin bloquear la respuesta
+      setImmediate(async () => {
+        try {
+          await processAIAnalysisBackground(allProducts, validatedData.query)
+        } catch (error) {
+          console.error('[AI Background] Error during background analysis:', error)
+        }
+      })
+      
+      // Agregar indicador de que el análisis está en progreso
+      analyzedProducts = allProducts.map(product => ({
+        ...product,
+        aiAnalysis: {
+          status: 'processing',
+          trustScore: null,
+          riskLevel: 'unknown',
+          recommendations: ['AI analysis in progress...'],
+          warnings: [],
+          summary: 'Analysis in progress',
+          confidence: 0
+        }
+      }))
     }
     
     // Calcular estadísticas
@@ -108,10 +159,8 @@ export async function POST(request: NextRequest) {
     const successfulPlatforms = results.filter(r => r.success).length
     const failedPlatforms = results.filter(r => !r.success).length
     
-    // Estadísticas de IA
-    const analyzedCount = analyzedProducts.filter(p => p.aiAnalysis).length
-    const highTrustProducts = analyzedProducts.filter(p => p.aiAnalysis?.trustScore >= 80).length
-    const lowRiskProducts = analyzedProducts.filter(p => p.aiAnalysis?.riskLevel === 'low').length
+    // Estadísticas de IA (para análisis en progreso)
+    const analyzedCount = validatedData.includeAI ? allProducts.length : 0
     
     const response = {
       success: true,
@@ -125,16 +174,11 @@ export async function POST(request: NextRequest) {
       products: analyzedProducts,
       aiAnalysis: validatedData.includeAI ? {
         enabled: true,
-        analyzedProducts: analyzedCount,
-        processingTime: aiAnalysisTime,
-        statistics: {
-          highTrustProducts,
-          lowRiskProducts,
-          averageTrustScore: analyzedCount > 0 ? 
-            analyzedProducts
-              .filter(p => p.aiAnalysis)
-              .reduce((sum, p) => sum + p.aiAnalysis.trustScore, 0) / analyzedCount : 0
-        }
+        status: 'processing',
+        analyzedProducts: 0,
+        totalProducts: analyzedCount,
+        processingTime: 0,
+        message: 'AI analysis is processing in background. Results will be available shortly.'
       } : {
         enabled: false,
         analyzedProducts: 0,
