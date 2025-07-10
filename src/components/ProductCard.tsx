@@ -67,7 +67,37 @@ export function ProductCard({ product }: ProductCardProps) {
             target.src = 'https://via.placeholder.com/300x200/e5e7eb/9ca3af?text=Sin+Imagen'
           }}
         />
-        <div className="absolute top-2 right-2">
+        
+        {/* AI BADGES - Prominentes en la imagen */}
+        {hasAIData && product.aiAnalysis && (
+          <div className="absolute top-2 left-2 space-y-1">
+            {product.aiAnalysis.trustScore >= 90 && (
+              <div className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center">
+                🏆 TOP AI
+              </div>
+            )}
+            {product.aiAnalysis.trustScore >= 80 && product.aiAnalysis.trustScore < 90 && (
+              <div className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center">
+                ⭐ RECOMENDADO
+              </div>
+            )}
+            {product.aiAnalysis.riskLevel === 'low' && (
+              <div className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                ✅ SEGURO
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Descuento badge */}
+        {(product as any).originalPrice && (product as any).originalPrice > product.price && (
+          <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+            -{Math.round((((product as any).originalPrice - product.price) / (product as any).originalPrice) * 100)}%
+          </div>
+        )}
+        
+        {/* Platform badge en la esquina inferior derecha */}
+        <div className="absolute bottom-2 right-2">
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPlatformColor(product.platform as any)}`}>
             {getPlatformName(product.platform as any)}
           </span>
@@ -113,6 +143,42 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
           </div>
         )}
+        
+        {/* PRECIO - Lo más importante para el usuario */}
+        <div className="mt-3 flex items-center justify-between">
+          <div>
+            {product.price && (
+              <div className="flex items-baseline space-x-2">
+                <span className="text-xl font-bold text-gray-900">
+                  {formatPrice(product.price, product.currency)}
+                </span>
+                {(product as any).originalPrice && (product as any).originalPrice > product.price && (
+                  <span className="text-sm text-gray-500 line-through">
+                    {formatPrice((product as any).originalPrice, product.currency)}
+                  </span>
+                )}
+              </div>
+            )}
+            {(product as any).originalPrice && (product as any).originalPrice > product.price && (
+              <div className="text-xs text-green-600 font-medium">
+                {Math.round((((product as any).originalPrice - product.price) / (product as any).originalPrice) * 100)}% descuento
+              </div>
+            )}
+          </div>
+          
+          {/* Rating del producto */}
+          {(product as any).rating && (product as any).rating > 0 && (
+            <div className="flex items-center space-x-1">
+              <svg className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <span className="text-sm font-medium">{(product as any).rating}</span>
+              {(product as any).reviewCount && (product as any).reviewCount > 0 && (
+                <span className="text-xs text-gray-500">({(product as any).reviewCount})</span>
+              )}
+            </div>
+          )}
+        </div>
         
         <div className="mt-3 pt-3 border-t border-gray-100">
           {hasAIData && product.aiAnalysis ? (
