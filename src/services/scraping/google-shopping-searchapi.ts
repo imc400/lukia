@@ -80,9 +80,11 @@ export class GoogleShoppingSearchAPIScraper {
 
       const data = await response.json()
       console.log(`[Google Shopping SearchAPI] API response received`)
+      console.log(`[Google Shopping SearchAPI] Raw response:`, JSON.stringify(data, null, 2))
 
       // Procesar respuesta
       if (data.shopping_results && Array.isArray(data.shopping_results)) {
+        console.log(`[Google Shopping SearchAPI] Found ${data.shopping_results.length} shopping results`)
         const products = this.parseSearchAPIResponse(data, maxResults)
         
         this.successCount++
@@ -131,8 +133,9 @@ export class GoogleShoppingSearchAPIScraper {
       
       for (let i = 0; i < Math.min(shoppingResults.length, maxResults); i++) {
         const item = shoppingResults[i]
+        console.log(`[Google Shopping SearchAPI] Processing item ${i}:`, JSON.stringify(item, null, 2))
         
-        if (item && item.title && item.link) {
+        if (item && item.title && (item.link || item.product_link)) {
           // Extraer precio
           const priceInfo = this.extractPrice(item.price || item.extracted_price)
           
@@ -165,6 +168,9 @@ export class GoogleShoppingSearchAPIScraper {
           
           // Incluir todos los productos para el MVP
           products.push(product)
+          console.log(`[Google Shopping SearchAPI] Product added: ${product.title}`)
+        } else {
+          console.log(`[Google Shopping SearchAPI] Item rejected - title: ${item?.title}, link: ${item?.link}, product_link: ${item?.product_link}`)
         }
       }
     } catch (error) {
