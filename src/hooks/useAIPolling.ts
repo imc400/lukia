@@ -58,6 +58,8 @@ export function useAIPolling({
       } else if (attempts >= maxAttempts) {
         setIsPolling(false)
         setError('AI analysis timeout - taking longer than expected')
+      } else {
+        console.log(`[AI Polling] Still processing... attempt ${attempts}/${maxAttempts}, status: ${data.status}`)
       }
 
     } catch (err) {

@@ -1,6 +1,17 @@
 import { Platform } from '@prisma/client'
 
 export function formatPrice(price: number, currency: string = 'USD'): string {
+  // Configuración específica para Chile y CLP
+  if (currency === 'CLP') {
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price)
+  }
+  
+  // Para otras monedas, usar formato estándar
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
@@ -14,7 +25,7 @@ export function formatRating(rating: number): string {
 export function getPlatformName(platform: Platform): string {
   const names: Record<Platform, string> = {
     ALIEXPRESS: 'AliExpress',
-    SHEIN: 'SHEIN',
+    SHEIN: 'Google Shopping', // Mostrar Google Shopping en lugar de SHEIN
     TEMU: 'Temu',
     ALIBABA: 'Alibaba',
   }
@@ -24,8 +35,8 @@ export function getPlatformName(platform: Platform): string {
 export function getPlatformColor(platform: Platform): string {
   const colors: Record<Platform, string> = {
     ALIEXPRESS: 'bg-orange-100 text-orange-800',
-    SHEIN: 'bg-pink-100 text-pink-800',
-    TEMU: 'bg-blue-100 text-blue-800',
+    SHEIN: 'bg-blue-100 text-blue-800', // Azul de Google para Google Shopping
+    TEMU: 'bg-green-100 text-green-800',
     ALIBABA: 'bg-yellow-100 text-yellow-800',
   }
   return colors[platform] || 'bg-gray-100 text-gray-800'
