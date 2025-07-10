@@ -82,9 +82,10 @@ async function processAIAnalysisBackground(products: any[], query: string) {
       (b.aiAnalysis?.trustScore || 0) - (a.aiAnalysis?.trustScore || 0)
     )
     
-    // Guardar resultado completo en cache con clave específica para AI (incluir país)
-    const cacheKey = `ai_analysis:cl:${query}`
-    await cache.set(cacheKey, {
+    // Cache inteligente: guardar resultado completo con clave específica
+    const normalizedQuery = query.toLowerCase().trim()
+    const cacheKey = `ai_analysis:cl:v2:${normalizedQuery}` // v2 para nueva versión con reviews
+    const cacheData = {
       products: sortedProducts,
       completedAt: new Date().toISOString(),
       totalAnalyzed: sortedProducts.length,
@@ -92,9 +93,14 @@ async function processAIAnalysisBackground(products: any[], query: string) {
       statistics: {
         highTrustProducts: sortedProducts.filter(p => p.aiAnalysis?.trustScore >= 80).length,
         lowRiskProducts: sortedProducts.filter(p => p.aiAnalysis?.riskLevel === 'low').length,
-        averageTrustScore: sortedProducts.reduce((sum, p) => sum + (p.aiAnalysis?.trustScore || 0), 0) / sortedProducts.length
+        averageTrustScore: Math.round(sortedProducts.reduce((sum, p) => sum + (p.aiAnalysis?.trustScore || 0), 0) / sortedProducts.length),
+        hasReviews: sortedProducts.some(p => p.reviews && p.reviews.length > 0),
+        topVendors: [...new Set(sortedProducts.slice(0, 10).map(p => p.vendorName))].slice(0, 5)
       }
-    }, 3600) // 1 hora de cache
+    }
+    
+    // Cache por 2 horas para búsquedas exitosas
+    await cache.set(cacheKey, cacheData, 7200)
     
     console.log(`[AI Background] Completed analysis for ${sortedProducts.length} products in ${Date.now() - startTime}ms`)
     console.log(`[AI Background] Cache saved with key: ${cacheKey}`)
