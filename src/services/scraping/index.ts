@@ -27,8 +27,8 @@ export class ScrapingService {
     // Buscar en cada plataforma
     for (const plt of platformsToSearch) {
       try {
-        // Verificar caché primero
-        const cacheKey = `search:${query}:${plt}`
+        // Verificar caché primero (incluir país para evitar conflictos)
+        const cacheKey = `search:cl:${query}:${plt}`
         const cachedResult = await this.cache.get<ScrapingResult>(cacheKey)
         
         if (cachedResult) {
@@ -46,7 +46,13 @@ export class ScrapingService {
         } else {
           switch (plt) {
             case Platform.SHEIN:
-              result = await scrapeShein(query, 20)
+              // Timeout agresivo para evitar timeouts de respuesta
+              result = await Promise.race([
+                scrapeShein(query, 20),
+                new Promise<ScrapingResult>((_, reject) => 
+                  setTimeout(() => reject(new Error('Scraping timeout')), 15000)
+                )
+              ])
               break
             default:
               result = {
