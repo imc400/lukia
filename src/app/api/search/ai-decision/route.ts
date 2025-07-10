@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { CacheService } from '@/lib/redis'
 
-const cache = new CacheService()
+const cache = CacheService.getInstance()
 
 export async function POST(request: NextRequest) {
   try {
