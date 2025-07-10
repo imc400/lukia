@@ -73,7 +73,7 @@ export class DebugAliExpressScraper {
   async debugSearch(query: string): Promise<any> {
     // Inicializar con proxy
     const proxy = await this.proxyManager.getBestProxy('ALIEXPRESS' as any)
-    await this.initialize(proxy)
+    await this.initialize(proxy || undefined)
 
     const searchUrl = `https://www.aliexpress.com/w/wholesale-${encodeURIComponent(query)}.html`
     console.log(`[Debug] Navigating to: ${searchUrl}`)

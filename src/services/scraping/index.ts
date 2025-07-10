@@ -1,7 +1,7 @@
 import { Platform } from '@prisma/client'
 import { ScrapingResult, SearchParams } from '@/types'
 import { scrapeAliExpress } from './enhanced-aliexpress'
-import { scrapeShein } from './shein-api'
+import { scrapeShein } from './google-shopping-searchapi'
 import { demoScrape, isDemoMode } from './demo'
 import { CacheService } from '@/lib/redis'
 import { prisma } from '@/lib/prisma'
