@@ -62,10 +62,17 @@ export class ProductAnalyzer {
   private rateLimitDelay: number = 1000 // 1 segundo entre requests
 
   constructor() {
-    const apiKey = process.env.OPENAI_API_KEY
+    const apiKey = process.env.OPENAI_API_KEY?.trim()
     if (!apiKey) {
       throw new Error('OPENAI_API_KEY is required')
     }
+    
+    // Validar formato de la API key
+    if (!apiKey.startsWith('sk-')) {
+      throw new Error('Invalid OpenAI API key format')
+    }
+    
+    console.log(`[AI] Initializing OpenAI with key: ${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 10)}`)
     
     this.openai = new OpenAI({
       apiKey: apiKey
@@ -143,6 +150,15 @@ export class ProductAnalyzer {
 
     } catch (error) {
       console.error('[AI Analysis] Error:', error)
+      
+      // Log más detalles del error
+      if (error instanceof Error) {
+        console.error('[AI Analysis] Error name:', error.name)
+        console.error('[AI Analysis] Error message:', error.message)
+        if ('status' in error) {
+          console.error('[AI Analysis] Error status:', (error as any).status)
+        }
+      }
       
       // Fallback analysis si falla la IA
       return this.generateFallbackAnalysis(product, Date.now() - startTime)
