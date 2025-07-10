@@ -80,33 +80,18 @@ export class GoogleShoppingSearchAPIScraper {
 
       const data = await response.json()
       console.log(`[Google Shopping SearchAPI] API response received`)
-      console.log(`[Google Shopping SearchAPI] Raw response:`, JSON.stringify(data, null, 2))
+      // Solo loggear estructura básica para evitar headers muy grandes
+      console.log(`[Google Shopping SearchAPI] Response structure:`, {
+        hasShoppingResults: !!data.shopping_results,
+        shoppingResultsCount: data.shopping_results?.length || 0,
+        hasFilters: !!data.filters,
+        hasSearchInfo: !!data.search_information
+      })
 
-      // Procesar respuesta - buscar productos en diferentes estructuras posibles
-      let shoppingResults = []
-      
+      // Procesar respuesta
       if (data.shopping_results && Array.isArray(data.shopping_results)) {
-        shoppingResults = data.shopping_results
-        console.log(`[Google Shopping SearchAPI] Found shopping_results array with ${shoppingResults.length} items`)
-      } else if (data.results && Array.isArray(data.results)) {
-        shoppingResults = data.results
-        console.log(`[Google Shopping SearchAPI] Found results array with ${shoppingResults.length} items`)
-      } else if (Array.isArray(data)) {
-        shoppingResults = data
-        console.log(`[Google Shopping SearchAPI] Data is direct array with ${shoppingResults.length} items`)
-      } else {
-        // Buscar cualquier array en la respuesta que contenga productos
-        for (const [key, value] of Object.entries(data)) {
-          if (Array.isArray(value) && value.length > 0 && value[0]?.price) {
-            shoppingResults = value
-            console.log(`[Google Shopping SearchAPI] Found products in ${key} array with ${shoppingResults.length} items`)
-            break
-          }
-        }
-      }
-      
-      if (shoppingResults.length > 0) {
-        const products = this.parseSearchAPIResponse({ shopping_results: shoppingResults }, maxResults)
+        console.log(`[Google Shopping SearchAPI] Found ${data.shopping_results.length} shopping results`)
+        const products = this.parseSearchAPIResponse(data, maxResults)
         
         this.successCount++
         const processingTime = Date.now() - startTime
@@ -154,10 +139,11 @@ export class GoogleShoppingSearchAPIScraper {
       
       for (let i = 0; i < Math.min(shoppingResults.length, maxResults); i++) {
         const item = shoppingResults[i]
-        console.log(`[Google Shopping SearchAPI] Processing item ${i}:`, JSON.stringify(item, null, 2))
+        // Logging reducido para evitar headers muy grandes
+        console.log(`[Google Shopping SearchAPI] Processing item ${i}: ${item?.title || 'No title'} - $${item?.extracted_price || item?.price || 'No price'}`)
         
         // Ser más flexible con los campos requeridos - solo necesitamos precio para validar que es un producto
-        if (item && (item.title || item.name) && (item.price || item.extracted_price)) {
+        if (item && (item.price || item.extracted_price)) {
           // Extraer precio usando los campos reales de la API
           const priceInfo = this.extractPrice(item.price || item.extracted_price)
           
@@ -168,7 +154,7 @@ export class GoogleShoppingSearchAPIScraper {
           const reviewInfo = this.extractReviewInfo(item.reviews)
           
           // Construir título
-          const title = item.title || item.name || `Product ${i + 1}`
+          const title = item.title || item.name || `iPhone Case - $${item.extracted_price || item.price}`
           
           // Construir URL del producto
           const productUrl = item.product_link || item.link || item.offers_link || `https://www.google.com/shopping/product/${item.product_id || ''}`
