@@ -363,11 +363,13 @@ export class GoogleShoppingSearchAPIScraper {
       return parseInt(item.sales_count || item.sold_count)
     }
     
-    // Extraer de texto de reviews si está disponible
-    const reviewText = item.reviews || ''
-    const salesMatch = reviewText.match(/(\d+)\s*(ventas|vendido|sold)/i)
-    if (salesMatch) {
-      return parseInt(salesMatch[1])
+    // Extraer de texto de reviews si está disponible y es string
+    const reviewText = typeof item.reviews === 'string' ? item.reviews : ''
+    if (reviewText) {
+      const salesMatch = reviewText.match(/(\d+)\s*(ventas|vendido|sold)/i)
+      if (salesMatch) {
+        return parseInt(salesMatch[1])
+      }
     }
     
     // Si no hay datos reales, no inventar - retornar 0
