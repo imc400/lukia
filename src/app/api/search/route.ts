@@ -123,10 +123,10 @@ export async function POST(request: NextRequest) {
       return [...acc, ...result.products]
     }, [] as any[])
 
-    // Respuesta inmediata con productos básicos
-    let analyzedProducts = allProducts
+    // Respuesta inmediata con productos básicos (sin modificaciones para velocidad)
+    const analyzedProducts = allProducts
     
-    // Si se solicita AI, iniciar análisis en background (no blocking)
+    // Si se solicita AI, iniciar análisis en background (completamente no-blocking)
     if (validatedData.includeAI && allProducts.length > 0) {
       console.log(`[AI Analysis] Starting background analysis for ${allProducts.length} products`)
       
@@ -138,20 +138,6 @@ export async function POST(request: NextRequest) {
           console.error('[AI Background] Error during background analysis:', error)
         }
       })
-      
-      // Agregar indicador de que el análisis está en progreso
-      analyzedProducts = allProducts.map(product => ({
-        ...product,
-        aiAnalysis: {
-          status: 'processing',
-          trustScore: null,
-          riskLevel: 'unknown',
-          recommendations: ['AI analysis in progress...'],
-          warnings: [],
-          summary: 'Analysis in progress',
-          confidence: 0
-        }
-      }))
     }
     
     // Calcular estadísticas
@@ -162,39 +148,19 @@ export async function POST(request: NextRequest) {
     // Estadísticas de IA (para análisis en progreso)
     const analyzedCount = validatedData.includeAI ? allProducts.length : 0
     
-    const response = {
+    // Respuesta mínima para velocidad máxima
+    return NextResponse.json({
       success: true,
       query: validatedData.query,
       totalResults,
-      platforms: {
-        successful: successfulPlatforms,
-        failed: failedPlatforms,
-        total: results.length
-      },
       products: analyzedProducts,
-      aiAnalysis: validatedData.includeAI ? {
-        enabled: true,
-        status: 'processing',
-        analyzedProducts: 0,
-        totalProducts: analyzedCount,
-        processingTime: 0,
-        message: 'AI analysis is processing in background. Results will be available shortly.'
-      } : {
-        enabled: false,
-        analyzedProducts: 0,
-        processingTime: 0
+      aiAnalysis: {
+        enabled: validatedData.includeAI,
+        status: validatedData.includeAI ? 'processing' : 'disabled',
+        message: validatedData.includeAI ? 'AI analysis in progress - check /api/search/ai-status' : 'AI analysis disabled'
       },
-      results: results.map(r => ({
-        platform: r.platform,
-        success: r.success,
-        count: r.products.length,
-        errors: r.errors,
-        processingTime: r.processingTime
-      })),
       timestamp: new Date().toISOString()
-    }
-    
-    return NextResponse.json(response)
+    })
     
   } catch (error) {
     console.error('Search API error:', error)

@@ -65,14 +65,20 @@ export class GoogleShoppingSearchAPIScraper {
         hl: 'en'  // Language: English
       })
 
-      // Realizar request a SearchAPI
+      // Realizar request a SearchAPI con timeout agresivo
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 segundos max
+      
       const response = await fetch(`${this.config.endpoint}?${searchParams}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'User-Agent': 'LUKIA/1.0 E-commerce AI Platform'
-        }
+        },
+        signal: controller.signal
       })
+      
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         throw new Error(`SearchAPI error: ${response.status} - ${response.statusText}`)
@@ -137,7 +143,10 @@ export class GoogleShoppingSearchAPIScraper {
     try {
       const shoppingResults = data.shopping_results || []
       
-      for (let i = 0; i < Math.min(shoppingResults.length, maxResults); i++) {
+      // Procesar máximo 15 productos para respuesta más rápida
+      const itemsToProcess = Math.min(shoppingResults.length, maxResults, 15)
+      
+      for (let i = 0; i < itemsToProcess; i++) {
         const item = shoppingResults[i]
         // Logging reducido para evitar headers muy grandes
         console.log(`[Google Shopping SearchAPI] Processing item ${i}: ${item?.title || 'No title'} - $${item?.extracted_price || item?.price || 'No price'}`)
