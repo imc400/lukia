@@ -26,6 +26,7 @@ export interface GoogleShoppingProduct {
   description?: string
   delivery?: string
   inStock?: boolean
+  isSponsored?: boolean
   reviews?: Array<{
     rating: number
     comment: string
@@ -154,8 +155,8 @@ export class GoogleShoppingSearchAPIScraper {
     try {
       const shoppingResults = data.shopping_results || []
       
-      // Procesar hasta 50 productos para plataforma robusta (de hasta 100 disponibles)
-      const itemsToProcess = Math.min(shoppingResults.length, maxResults, 50)
+      // Procesar hasta 80 productos para mayor variedad (de hasta 100 disponibles)
+      const itemsToProcess = Math.min(shoppingResults.length, maxResults, 80)
       
       for (let i = 0; i < itemsToProcess; i++) {
         const item = shoppingResults[i]
@@ -186,6 +187,9 @@ export class GoogleShoppingSearchAPIScraper {
           // Construir URL del producto
           const productUrl = item.product_link || item.link || item.offers_link || `https://www.google.com/shopping/product/${item.product_id || ''}`
           
+          // Detectar si es producto patrocinado
+          const isSponsored = this.detectSponsored(item)
+          
           // Crear producto (vamos a incluir todos para el MVP)
           const product: GoogleShoppingProduct = {
             title: title.trim(),
@@ -205,7 +209,8 @@ export class GoogleShoppingSearchAPIScraper {
             description: item.snippet || item.description || `${title} available online`,
             delivery: item.delivery || item.shipping || 'Standard shipping',
             inStock: item.in_stock !== false, // Asumir disponible a menos que se especifique lo contrario
-            reviews: extractedReviews
+            reviews: extractedReviews,
+            isSponsored
           }
           
           // Incluir todos los productos para el MVP
@@ -220,6 +225,21 @@ export class GoogleShoppingSearchAPIScraper {
     }
 
     return products
+  }
+
+  /**
+   * Detectar si un producto es patrocinado
+   */
+  private detectSponsored(item: any): boolean {
+    // Google Shopping API incluye información sobre productos patrocinados
+    return !!(
+      item.ad_type ||
+      item.sponsored ||
+      item.ad ||
+      (item.position && item.position <= 3) || // Primeros 3 resultados often paid
+      item.ads_tag ||
+      (item.source && item.source.includes('ads'))
+    )
   }
 
   /**

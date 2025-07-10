@@ -9,7 +9,7 @@ import { CacheService } from '@/lib/redis'
 const searchSchema = z.object({
   query: z.string().min(1).max(100),
   platform: z.enum(['all', 'ALIEXPRESS', 'SHEIN', 'TEMU', 'ALIBABA', 'aliexpress', 'shein', 'temu', 'alibaba']).optional().default('all'),
-  maxResults: z.number().min(1).max(50).optional().default(20),
+  maxResults: z.number().min(1).max(100).optional().default(80),
   includeAI: z.boolean().optional().default(true)
 })
 

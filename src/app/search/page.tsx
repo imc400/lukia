@@ -295,10 +295,19 @@ function SearchContent() {
               return scoreB - scoreA
             })[0]
             
+            // Obtener múltiples opciones por categoría
+            const budgetOptions = validProducts.filter(p => p.price <= q1).sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 2)
+            const premiumOptions = validProducts.filter(p => p.price > q3).sort((a, b) => (b.aiAnalysis?.trustScore || 0) - (a.aiAnalysis?.trustScore || 0)).slice(0, 2)
+            const balancedOptions = validProducts.filter(p => p.price > q1 && p.price <= q3).sort((a, b) => {
+              const scoreA = (a.aiAnalysis?.trustScore || 0) + (a.rating || 0) * 20
+              const scoreB = (b.aiAnalysis?.trustScore || 0) + (b.rating || 0) * 20
+              return scoreB - scoreA
+            }).slice(0, 2)
+            
             const alternatives = [
-              { product: budget, category: 'Económica', color: 'green', icon: '💰' },
-              { product: balanced, category: 'Equilibrada', color: 'blue', icon: '⚖️' },
-              { product: premium, category: 'Premium', color: 'purple', icon: '✨' }
+              ...budgetOptions.map(p => ({ product: p, category: 'Económica', color: 'green', icon: '💰' })),
+              ...balancedOptions.map(p => ({ product: p, category: 'Equilibrada', color: 'blue', icon: '⚖️' })),
+              ...premiumOptions.map(p => ({ product: p, category: 'Premium', color: 'purple', icon: '✨' }))
             ].filter(alt => alt.product)
             
             return (
@@ -353,9 +362,11 @@ function SearchContent() {
             const maxPrice = Math.max(...prices)
             const highTrustCount = validProducts.filter(p => p.aiAnalysis?.trustScore >= 80).length
             const lowRiskCount = validProducts.filter(p => p.aiAnalysis?.riskLevel === 'low').length
+            const sponsoredCount = validProducts.filter(p => (p as any).isSponsored).length
+            const organicCount = validProducts.length - sponsoredCount
             
             return (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-purple-600">{formatPrice(avgPrice, 'CLP')}</div>
                   <div className="text-sm text-gray-600">Precio Promedio</div>
@@ -371,6 +382,14 @@ function SearchContent() {
                 <div className="text-center">
                   <div className="text-2xl font-bold text-emerald-600">{lowRiskCount}</div>
                   <div className="text-sm text-gray-600">Bajo Riesgo</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">{sponsoredCount}</div>
+                  <div className="text-sm text-gray-600">Patrocinados</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-600">{organicCount}</div>
+                  <div className="text-sm text-gray-600">Orgánicos</div>
                 </div>
               </div>
             )

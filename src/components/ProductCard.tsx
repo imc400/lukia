@@ -69,25 +69,35 @@ export function ProductCard({ product }: ProductCardProps) {
         />
         
         {/* AI BADGES - Prominentes en la imagen */}
-        {hasAIData && product.aiAnalysis && (
-          <div className="absolute top-2 left-2 space-y-1">
-            {product.aiAnalysis.trustScore >= 90 && (
-              <div className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center">
-                🏆 TOP AI
-              </div>
-            )}
-            {product.aiAnalysis.trustScore >= 80 && product.aiAnalysis.trustScore < 90 && (
-              <div className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center">
-                ⭐ RECOMENDADO
-              </div>
-            )}
-            {product.aiAnalysis.riskLevel === 'low' && (
-              <div className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-medium">
-                ✅ SEGURO
-              </div>
-            )}
-          </div>
-        )}
+        <div className="absolute top-2 left-2 space-y-1">
+          {/* Badge de producto patrocinado */}
+          {(product as any).isSponsored && (
+            <div className="bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+              📢 PATROCINADO
+            </div>
+          )}
+          
+          {/* AI Analysis badges */}
+          {hasAIData && product.aiAnalysis && (
+            <>
+              {product.aiAnalysis.trustScore >= 90 && (
+                <div className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center">
+                  🏆 TOP AI
+                </div>
+              )}
+              {product.aiAnalysis.trustScore >= 80 && product.aiAnalysis.trustScore < 90 && (
+                <div className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center">
+                  ⭐ RECOMENDADO
+                </div>
+              )}
+              {product.aiAnalysis.riskLevel === 'low' && (
+                <div className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                  ✅ SEGURO
+                </div>
+              )}
+            </>
+          )}
+        </div>
         
         {/* Descuento badge */}
         {(product as any).originalPrice && (product as any).originalPrice > product.price && (
