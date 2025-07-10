@@ -58,11 +58,11 @@ function SearchContent() {
 
   // Actualizar productos cuando AI analysis esté completo
   useEffect(() => {
-    if (aiResult?.status === 'completed' && aiResult.data && searchResult) {
+    if (aiResult?.status === 'completed' && aiResult.data?.products && searchResult) {
       console.log('[AI Polling] Updating products with AI analysis')
       
       const updatedProducts = searchResult.products.map(product => {
-        const aiProduct = aiResult.data.products.find(p => p.title === product.title)
+        const aiProduct = aiResult.data!.products.find(p => p.title === product.title)
         if (aiProduct?.aiAnalysis) {
           return {
             ...product,
@@ -85,7 +85,7 @@ function SearchContent() {
         aiAnalysis: {
           ...prev.aiAnalysis,
           status: 'completed',
-          message: `Análisis completado: ${aiResult.data.totalAnalyzed} productos analizados`
+          message: `Análisis completado: ${aiResult.data!.totalAnalyzed} productos analizados`
         }
       } : null)
     }
