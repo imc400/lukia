@@ -18,7 +18,13 @@ export async function POST(request: NextRequest) {
     const normalizedQuery = query.toLowerCase().trim()
     const cacheKey = `ai_analysis:cl:v3:${normalizedQuery}`
     
-    const cachedData = await cache.get(cacheKey)
+    const cachedData = await cache.get<{
+      products: any[]
+      decisionAnalysis?: any
+      totalAnalyzed: number
+      completedAt: string
+      processingTime: number
+    }>(cacheKey)
     
     if (cachedData && cachedData.decisionAnalysis) {
       return NextResponse.json({
