@@ -36,25 +36,33 @@ function SearchContent() {
   })
 
   useEffect(() => {
-    const resultsParam = searchParams.get('results')
     const query = searchParams.get('q')
     const platform = searchParams.get('platform')
     
-    if (resultsParam) {
+    // Primero intentar cargar desde sessionStorage
+    const cachedResults = sessionStorage.getItem('searchResults')
+    
+    if (cachedResults && query) {
       try {
-        const data = JSON.parse(resultsParam)
-        setSearchResult(data)
+        const data = JSON.parse(cachedResults)
+        // Verificar que los resultados coincidan con la query actual
+        if (data.query === query) {
+          setSearchResult(data)
+          setIsLoading(false)
+          return
+        }
       } catch (err) {
-        setError('Error al cargar los resultados')
+        console.error('Error parsing cached results:', err)
       }
-    } else if (query) {
-      // Búsqueda directa si no hay resultados en parámetros
+    }
+    
+    // Si no hay cache válido y hay query, hacer búsqueda nueva
+    if (query) {
       performSearch(query, platform || 'all')
     } else {
       setError('No se encontraron parámetros de búsqueda')
+      setIsLoading(false)
     }
-    
-    setIsLoading(false)
   }, [searchParams])
 
   // Actualizar productos cuando AI analysis esté completo
@@ -100,13 +108,20 @@ function SearchContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query, platform }),
+        body: JSON.stringify({ 
+          query, 
+          platform, 
+          maxResults: 50,
+          includeAI: true 
+        }),
       })
 
       const data = await response.json()
       
       if (data.success) {
         setSearchResult(data)
+        // Guardar en sessionStorage para futuras navegaciones
+        sessionStorage.setItem('searchResults', JSON.stringify(data))
       } else {
         setError(data.error || 'Error en la búsqueda')
       }

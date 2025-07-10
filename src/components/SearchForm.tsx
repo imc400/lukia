@@ -24,18 +24,21 @@ export function SearchForm() {
         body: JSON.stringify({ 
           query: query.trim(), 
           platform,
-          maxResults: 20
+          maxResults: 50,
+          includeAI: true
         }),
       })
 
       const data = await response.json()
       
       if (data.success) {
-        // Redirigir a página de resultados con los datos
+        // Guardar resultados en sessionStorage para evitar URLs muy largas
+        sessionStorage.setItem('searchResults', JSON.stringify(data))
+        
+        // Redirigir a página de resultados con parámetros simples
         const searchParams = new URLSearchParams({
           q: query.trim(),
-          platform,
-          results: JSON.stringify(data)
+          platform
         })
         router.push(`/search?${searchParams.toString()}`)
       } else {
