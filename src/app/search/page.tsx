@@ -224,7 +224,9 @@ function SearchContent() {
       )}
 
       {/* AI Comparison - Mostrar alternativas */}
-      {decisionResult?.status === 'completed' && decisionResult.data?.bestChoice?.alternatives?.length > 0 && (
+      {decisionResult?.status === 'completed' && 
+       decisionResult.data?.bestChoice?.alternatives && 
+       decisionResult.data.bestChoice.alternatives.length > 0 && (
         <AIComparison 
           alternatives={decisionResult.data.bestChoice.alternatives}
           marketInsights={decisionResult.data.bestChoice.marketInsights}
