@@ -11,13 +11,12 @@ interface SearchResult {
   success: boolean
   query: string
   totalResults: number
-  platforms: {
-    successful: number
-    failed: number
-    total: number
-  }
   products: any[]
-  results: any[]
+  aiAnalysis: {
+    enabled: boolean
+    status: string
+    message: string
+  }
   timestamp: string
 }
 
@@ -131,8 +130,7 @@ function SearchContent() {
       <SearchSummary 
         query={searchResult.query}
         totalResults={searchResult.totalResults}
-        platforms={searchResult.platforms}
-        results={searchResult.results}
+        aiAnalysis={searchResult.aiAnalysis}
       />
       
       {searchResult.products.length > 0 ? (
